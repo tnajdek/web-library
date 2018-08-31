@@ -38,7 +38,7 @@ class SelectInput extends React.PureComponent {
 		}
 	}
 
-	handleChange(value) {
+	handleChange({ value }) {
 		value = value !== null || (value === null && this.props.clearable) ?
 			value : this.props.value;
 		this.setState({ value });
@@ -137,7 +137,13 @@ class SelectInput extends React.PureComponent {
 				onChange: this.handleChange.bind(this),
 			};
 
-			return <Select { ...props } />;
+			return <Select
+				{ ...props }
+				getOptionLabel={ ({ label }) => label }
+				getOptionValue={ ({ value }) => value }
+				className={ cx('react-select-container', props.className) }
+				classNamePrefix="react-select"
+			/>;
 		}
 	}
 

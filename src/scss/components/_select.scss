@@ -2,12 +2,12 @@
 // React select
 // --------------------------------------------------
 
-.Select {
+.react-select-container {
 	position: relative;
 	flex: 1 1 0;
 	min-width: 0; // Prevent overflow
 
-	.Select-control {
+	.react-select__control {
 		display: flex;
 		align-items: center;
 		border-radius: $input-border-radius;
@@ -15,10 +15,10 @@
 		cursor: default;
 		border: $input-border-width solid $input-border-color;
 		background-color: $input-bg;
-		padding: $input-btn-padding-y ($input-btn-padding-x - 4px) $input-btn-padding-y $input-btn-padding-x; // Todo: just default, handle padding with .form-control and modifier classes on .Select.
+		padding: $input-btn-padding-y ($input-btn-padding-x - 4px) $input-btn-padding-y $input-btn-padding-x; // Todo: just default, handle padding with .form-control and modifier classes on .react-select.
 		position: relative;
 
-		@include state(".Select.is-focused") {
+		@include state(".react-select.is-focused") {
 			border: $input-border-width solid $input-focus-color;
 			box-shadow: 0 0 0 2px $input-focus-color;
 			outline: none;
@@ -26,25 +26,25 @@
 	}
 
 	&.is-searchable.is-open {
-		.Select-control {
+		.react-select-control {
 			cursor: text;
 		}
 	}
 
-	.Select-multi-value-wrapper {
+	.react-select__value-container {
 		flex: 1 1 0;
 		display: flex;
 		align-items: center;
 		min-width: 0; // Prevent overflow
 	}
 
-	&.Select--single {
-		.Select-value-label {
+	&.react-select--single {
+		.react-select-value-label {
 			@include text-truncate;
 		}
 
 		&.has-value {
-			.Select-value {
+			.react-select-value {
 				@include mouse-and-bp-up(md) {
 					padding-right:
 						($input-btn-padding-x - 4px)
@@ -64,7 +64,7 @@
 		}
 	}
 
-	.Select-value {
+	.react-select-value {
 		display: flex;
 		align-items: center;
 		position: absolute;
@@ -75,7 +75,7 @@
 		padding: 0 $input-btn-padding-x;
 	}
 
-	.Select-input {
+	.react-select-input {
 		outline: none;
 		max-width: 100%;
 		overflow: hidden;
@@ -97,18 +97,18 @@
 		}
 	}
 
-	.Select-arrow-zone {
+	.react-select-arrow-zone {
 		flex: 0 0 auto;
 	}
 
-	.Select-arrow {
+	.react-select-arrow {
 		display: block;
 		width: $space-md;
 		height: $space-md;
 		background: image-url("icons/chevron-7.svg") no-repeat 0 0;
 	}
 
-	.Select-menu-outer {
+	.react-select-menu-outer {
 		position: absolute;
 		left: $input-border-width;
 		top: calc(100% + #{$space-min + $input-border-width});
@@ -121,18 +121,18 @@
 		background-clip: padding-box;
 	}
 
-	.Select-menu {
+	.react-select-menu {
 		max-height: 10 * $line-height-large;
 		overflow-y: auto;
 	}
 
-	.Select-option,
-	.Select-noresults {
+	.react-select-option,
+	.react-select-noresults {
 		padding: 0 $input-btn-padding-x;
 		line-height: $line-height-large;
 	}
 
-	.Select-option {
+	.react-select-option {
 		cursor: pointer;
 
 		&.is-focused {
@@ -144,7 +144,7 @@
 		}
 	}
 
-	.Select-noresults {
+	.react-select-noresults {
 		color: $menu-no-results-color;
 	}
 }
