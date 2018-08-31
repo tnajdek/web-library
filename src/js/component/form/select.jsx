@@ -7,8 +7,16 @@ const cx = require('classnames');
 const { noop } = require('../../utils');
 
 const Spinner = require('../ui/spinner');
-const Select = require('react-select').default;
+const { default: Select, components } = require('react-select');
 const { UserTypeContext, ViewportContext } = require('../../context');
+
+const IndicatorsContainer = (props) => {
+	return components.IndicatorsContainer && (
+		<components.IndicatorsContainer {...props}>
+			<div className="react-select-arrow"></div>
+		</components.IndicatorsContainer>
+	);
+};
 
 class SelectInput extends React.PureComponent {
 	constructor(props) {
@@ -40,7 +48,7 @@ class SelectInput extends React.PureComponent {
 
 	handleChange({ value }) {
 		value = value !== null || (value === null && this.props.clearable) ?
-			value : this.props.value;
+		value : this.props.value;
 		this.setState({ value });
 
 		if(this.props.onChange(value) || this.forceCommitOnNextChange) {
@@ -64,9 +72,9 @@ class SelectInput extends React.PureComponent {
 	handleKeyDown(event) {
 		switch (event.key) {
 			case 'Escape':
-				this.cancel(event);
+			this.cancel(event);
 			break;
-		default:
+			default:
 			return;
 		}
 	}
@@ -77,8 +85,7 @@ class SelectInput extends React.PureComponent {
 
 	get defaultSelectProps() {
 		return {
-			simpleValue: true,
-			clearable: false,
+			isClearable: false,
 		};
 	}
 
@@ -126,7 +133,6 @@ class SelectInput extends React.PureComponent {
 					</select>
 					<div className={ className }>{ options.find(o => o.value === value).label }</div>
 				</div>
-
 			);
 		} else {
 			const props = {
@@ -139,6 +145,8 @@ class SelectInput extends React.PureComponent {
 
 			return <Select
 				{ ...props }
+				components={ { IndicatorsContainer }}
+				value={ options.find(o => o.value == props.value) }
 				getOptionLabel={ ({ label }) => label }
 				getOptionValue={ ({ value }) => value }
 				className={ cx('react-select-container', props.className) }
@@ -154,18 +162,18 @@ class SelectInput extends React.PureComponent {
 	render() {
 		return (
 			<ViewportContext.Consumer>
-				{ viewport => (
-					<UserTypeContext.Consumer>
-					{ userType => (
-						<div className={ cx(this.className) }>
-							{ this.renderInput(userType, viewport) }
-							{ this.renderSpinner() }
-						</div>
+			{ viewport => (
+				<UserTypeContext.Consumer>
+				{ userType => (
+					<div className={ cx(this.className) }>
+					{ this.renderInput(userType, viewport) }
+					{ this.renderSpinner() }
+					</div>
 					)}
-					</UserTypeContext.Consumer>
+				</UserTypeContext.Consumer>
 				)}
 			</ViewportContext.Consumer>
-		);
+			);
 	}
 
 	static defaultProps = {

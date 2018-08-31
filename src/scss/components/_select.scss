@@ -26,7 +26,7 @@
 	}
 
 	&.is-searchable.is-open {
-		.react-select-control {
+		.react-select__control {
 			cursor: text;
 		}
 	}
@@ -36,35 +36,33 @@
 		display: flex;
 		align-items: center;
 		min-width: 0; // Prevent overflow
+		padding: 0;
 	}
 
-	&.react-select--single {
-		.react-select-value-label {
-			@include text-truncate;
-		}
+	.react-select__single-value {
+		@include text-truncate;
+		transform: none;
 
-		&.has-value {
-			.react-select-value {
-				@include mouse-and-bp-up(md) {
-					padding-right:
-						($input-btn-padding-x - 4px)
-						+ $space-md;
+		&.react-select__value-container--has-value {
+			@include mouse-and-bp-up(md) {
+				padding-right:
+					($input-btn-padding-x - 4px)
+					+ $space-md;
 
-					// Does not work => .busy body:not(.touch) …
-					//.busy & {
-					//	padding-right:
-					//		($input-btn-padding-x - 4px)
-					//		+ $space-md
-					//		+ $space-md
-					//		+ $input-border-width
-					//		+ 1px;
-					//}
-				}
+				// Does not work => .busy body:not(.touch) …
+				//.busy & {
+				//	padding-right:
+				//		($input-btn-padding-x - 4px)
+				//		+ $space-md
+				//		+ $space-md
+				//		+ $input-border-width
+				//		+ 1px;
+				//}
 			}
 		}
 	}
 
-	.react-select-value {
+	.react-select__single-value {
 		display: flex;
 		align-items: center;
 		position: absolute;
@@ -75,7 +73,7 @@
 		padding: 0 $input-btn-padding-x;
 	}
 
-	.react-select-input {
+	.react-select__input {
 		outline: none;
 		max-width: 100%;
 		overflow: hidden;
@@ -97,7 +95,7 @@
 		}
 	}
 
-	.react-select-arrow-zone {
+	.react-select__indicators {
 		flex: 0 0 auto;
 	}
 
@@ -108,7 +106,7 @@
 		background: image-url("icons/chevron-7.svg") no-repeat 0 0;
 	}
 
-	.react-select-menu-outer {
+	.react-select__menu {
 		position: absolute;
 		left: $input-border-width;
 		top: calc(100% + #{$space-min + $input-border-width});
@@ -121,30 +119,30 @@
 		background-clip: padding-box;
 	}
 
-	.react-select-menu {
+	.react-select__menu-list {
 		max-height: 10 * $line-height-large;
 		overflow-y: auto;
 	}
 
-	.react-select-option,
-	.react-select-noresults {
+	.react-select__option,
+	.react-select__noresults {
 		padding: 0 $input-btn-padding-x;
 		line-height: $line-height-large;
 	}
 
-	.react-select-option {
+	.react-select__option {
 		cursor: pointer;
 
-		&.is-focused {
+		&.react-select__option--is-focused {
 			background-color: $menu-item-hover-bg;
 		}
 
-		&.is-selected {
+		&.react-select__option--is-selected {
 			background-color: $menu-item-selected-bg;
 		}
 	}
 
-	.react-select-noresults {
+	.react-select__noresults {
 		color: $menu-no-results-color;
 	}
 }
