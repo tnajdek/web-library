@@ -9,8 +9,10 @@ import Input from '../form/input';
 import Spinner from '../ui/spinner';
 import { pick } from '../../common/immutable';
 import { coreCitationStyles } from '../../../../data/citation-styles-data.json';
-import SearchWorkerFactory from 'webworkify';
-const SearchWorker = SearchWorkerFactory(require('../../style-search.worker.js'));
+// import SearchWorkerFactory from 'webworkify';
+// const SearchWorker = SearchWorkerFactory(require('../../style-search.worker.js'));
+import SearchWorkerFactory from 'worker#../../style-search.worker.js';
+const SearchWorker = new SearchWorkerFactory();
 
 class StyleInstallerModal extends React.PureComponent {
 	state = {
