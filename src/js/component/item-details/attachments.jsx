@@ -130,11 +130,19 @@ Attachment.propTypes = {
 	onKeyDown: PropTypes.func.isRequired,
 }
 
+const AttachmentDetails = props => {
+	return (
+		<div className="attachment-details no-selection">
+			<div className="placeholder">No attachment selected</div>
+		</div>
+	);
+}
+
 const PAGE_SIZE = 100;
 
 const Attachments = props => {
-	const { childItems, createAttachmentsFromDropped, device, isFetched, isFetching, isReadOnly,
-	itemKey, createItem, uploadAttachment, onFocusNext, onFocusPrev, fetchChildItems,
+	const { attachmentKey, childItems, createAttachmentsFromDropped, device, isFetched, isFetching,
+	isReadOnly, itemKey, createItem, uploadAttachment, onFocusNext, onFocusPrev, fetchChildItems,
 	fetchItemTemplate, uploads, isActive, libraryKey, onBlur, onFocus, pointer, registerFocusRoot,
 	...rest } = props;
 
@@ -281,11 +289,7 @@ const Attachments = props => {
 				)}
 			</div>
 			{
-				(!device.isTouchOrSmall && attachments.length > 0) && (
-					<div className="attachment-details no-selection">
-						<div className="placeholder">No attachment selected</div>
-					</div>
-				)
+				(!device.isTouchOrSmall && attachments.length > 0) && <AttachmentDetails />
 			}
 		</TabPane>
 	);

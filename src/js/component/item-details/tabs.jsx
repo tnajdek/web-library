@@ -68,6 +68,8 @@ const ItemDetailsTabs = props => {
 
 	const [isEditing, ] = useEditMode();
 	const isReadOnly = isLibraryReadOnly || !!(device.shouldUseEditMode && !isEditing);
+
+	console.log({ isReadOnly,  isLibraryReadOnly, shouldUseEditMode: device.shouldUseEditMode, isEditing});
 	const isReady = device.shouldUseTabs || (
 		!device.shouldUseTabs && childItemsState.hasChecked && relatedItemsState.isFetched &&
 		isTinymceFetched && isMetaAvailable

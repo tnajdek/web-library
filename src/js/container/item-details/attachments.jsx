@@ -11,7 +11,7 @@ import { get } from '../../utils';
 const AttachmentsContainer = props => <Attachments { ...props } />;
 
 const mapStateToProps = state => {
-	const { libraryKey, itemKey } = state.current;
+	const { attachmentKey, libraryKey, itemKey } = state.current;
 	const childItemsData = get(state, ['libraries', libraryKey, 'itemsByParent', itemKey], {});
 	const { isFetching, pointer, keys, totalResults } = childItemsData;
 	const childItems = (keys || [])
@@ -22,7 +22,8 @@ const mapStateToProps = state => {
 	const hasMoreItems = totalResults > 0 && (typeof(pointer) === 'undefined' || pointer < totalResults);
 	const isFetched = hasChecked && !isFetching && !hasMoreItems;
 
-	return { childItems, libraryKey, itemKey, isFetched, isFetching, uploads, pointer, totalResults };
+	return { attachmentKey, childItems, libraryKey, itemKey, isFetched, isFetching, uploads,
+			pointer, totalResults };
 }
 
 export default connect(mapStateToProps,
