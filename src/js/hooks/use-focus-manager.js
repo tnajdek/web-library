@@ -4,7 +4,7 @@ const isModifierKey = ev => ev.getModifierState("Meta") || ev.getModifierState("
 		ev.getModifierState("Control") || ev.getModifierState("OS");
 
 
-const useFocusManager = (ref, { overrideFocusRef = null, isCarousel = true } = {}) => {
+const useFocusManager = (ref, { overrideFocusRef = null, initialFocusPicker = null, isCarousel = true } = {}) => {
 	const [isFocused, setIsFocused] = useState(false);
 	const lastFocused = useRef(null);
 	const originalTabIndex = useRef(null);
@@ -100,7 +100,16 @@ const useFocusManager = (ref, { overrideFocusRef = null, isCarousel = true } = {
 			// keep the focus on the candidate pressed
 			return;
 		} else if(ev.target === ev.currentTarget && candidates.length > 0) {
-			candidates[0].focus();
+			if(initialFocusPicker) {
+				const selectedCandidate = candidates.find(initialFocusPicker);
+				if(selectedCandidate) {
+					selectedCandidate.focus();
+				} else {
+					candidates[0].focus();
+				}
+			} else {
+				candidates[0].focus();
+			}
 		}
 	})
 

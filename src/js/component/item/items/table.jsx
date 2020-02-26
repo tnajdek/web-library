@@ -14,8 +14,8 @@ import TableBody from './table-body';
 import TableRow from './table-row';
 import { applyChangesToVisibleColumns, resizeVisibleColumns } from '../../../utils';
 import { ATTACHMENT } from '../../../constants/dnd';
-import { createAttachmentsFromDropped, fetchSource, preferenceChange } from '../../../actions';
-import { useSourceData } from '../../../hooks';
+import { createAttachmentsFromDropped, fetchSource, preferenceChange, triggerFocus } from '../../../actions';
+import { useFocusManager, useSourceData } from '../../../hooks';
 
 const ROWHEIGHT = 26;
 
@@ -62,6 +62,11 @@ const Table = memo(() => {
 		columnsData.find(column => 'sort' in column) || { field: 'title', sort: 'asc' },
 		[columnsData]
 	);
+	const { handleNext, handlePrevious, handleDrillDownNext, handleDrillDownPrev, handleFocus,
+		handleBlur } = useFocusManager(
+			tableRef,
+			{ isCarousel: false, initialFocusPicker: candidate => candidate.classList.contains('active') }
+		);
 
 	const dispatch = useDispatch();
 
@@ -191,6 +196,24 @@ const Table = memo(() => {
 		setIsHoveringBetweenRows(isOverRow && dropZone !== null);
 	});
 
+	const handleKeyDown = useCallback(ev => {
+		if(ev.key === 'ArrowUp') {
+			handlePrevious(ev, { useCurrentTarget: false });
+		} else if(ev.key === 'ArrowDown') {
+			handleNext(ev, { useCurrentTarget: false });
+		}
+	});
+
+	const handleTableFocus = useCallback(ev => {
+		dispatch(triggerFocus('items-table', true));
+		handleFocus(ev);
+	});
+
+	const handleTableBlur = useCallback(ev => {
+		dispatch(triggerFocus('items-table', false));
+		handleBlur(ev);
+	});
+
 	useEffect(() => {
 		if(!hasChecked && !isFetching) {
 			dispatch(fetchSource(0, 50));
@@ -202,6 +225,7 @@ const Table = memo(() => {
 			if(mouseUpTimeout.current) {
 				clearTimeout(mouseUpTimeout.current);
 			}
+			dispatch(triggerFocus('items-table', false));
 		}
 	}, []);
 
@@ -252,10 +276,17 @@ const Table = memo(() => {
 				>
 					{({ onItemsRendered, ref }) => (
 						<div
+							tabIndex={ 0 }
+							onFocus={ handleTableFocus }
+							onBlur={ handleTableBlur }
+							onKeyDown={ handleKeyDown }
 							ref={ tableRef }
 							className="items-table"
 							style={ getColumnCssVars(columns, width, scrollbarWidth) }
-							role="table"
+							role="grid"
+							aria-multiselectable="true"
+							aria-readonly="true"
+							aria-label="items table"
 						>
 							<HeaderRow
 								ref={ headerRef }

@@ -1,4 +1,4 @@
-import React, { useEffect, forwardRef, memo, useCallback, useRef } from 'react';
+import React, { forwardRef, memo, useCallback, useRef } from 'react';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 
 import { chunkedTrashOrDelete, navigate, triggerFocus } from '../../../actions';
@@ -23,11 +23,6 @@ const TableBody = memo(forwardRef((props, ref) => {
 				items: [keys[0]]
 			}));
 		}
-		dispatch(triggerFocus('items-table', true));
-	});
-
-	const handleBlur = useCallback(() => {
-		dispatch(triggerFocus('items-table', false));
 	});
 
 	const handleKeyDown = useCallback(ev => {
@@ -72,7 +67,6 @@ const TableBody = memo(forwardRef((props, ref) => {
 		if(vector < 0 && index + vector < 0) {
 			if(!ev.getModifierState('Shift')) {
 				nextKeys = [];
-				dispatch(triggerFocus('items-table', false));
 				tableBodyRef.current.closest('.items-table').querySelector('.items-table-head').focus();
 			}
 		} else {
@@ -116,18 +110,13 @@ const TableBody = memo(forwardRef((props, ref) => {
 		dispatch(navigate({ items: nextKeys }));
 	});
 
-	useEffect(() => {
-		return () => dispatch(triggerFocus('items-table', false));
-	}, [])
-
 	return (
 		<div
 			{ ... props }
 			ref={ r => { ref(r); tableBodyRef.current = r } }
 			onFocus={ handleFocus }
-			onBlur={ handleBlur }
-			tabIndex={ 0 }
 			onKeyDown={ handleKeyDown }
+			role="rowgroup"
 		/>
 	);
 

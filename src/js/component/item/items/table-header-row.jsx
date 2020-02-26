@@ -105,7 +105,7 @@ const HeaderRow = memo(forwardRef((props, ref) => {
 					onClick={ handleCellClickAndKeyDown }
 					onKeyDown={ handleCellClickAndKeyDown }
 					role="columnheader"
-					tabIndex={ -2 }
+
 					width={ `var(--col-${colIndex}-width)` }
 				>
 					<div className="header-content">
