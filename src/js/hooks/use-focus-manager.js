@@ -4,10 +4,13 @@ const isModifierKey = ev => ev.getModifierState("Meta") || ev.getModifierState("
 		ev.getModifierState("Control") || ev.getModifierState("OS");
 
 
+//@TODO: rename functions from handleABC to focusABC, e.g. handleNext should be FocusNext,
+
 const useFocusManager = (ref, { overrideFocusRef = null, initialFocusPicker = null, isCarousel = true } = {}) => {
 	const [isFocused, setIsFocused] = useState(false);
 	const lastFocused = useRef(null);
 	const originalTabIndex = useRef(null);
+	const initialFocusPickerRef = useRef(initialFocusPicker);
 
 	const handleNext = useCallback((ev, { useCurrentTarget = true, targetEnd = null, offset = 1 } = {}) => {
 		const tabbables = Array.from(
@@ -79,11 +82,18 @@ const useFocusManager = (ref, { overrideFocusRef = null, initialFocusPicker = nu
 		}
 	});
 
+	const handleBySelector = useCallback((ev, selector) => {
+		const nextEl = ev.currentTarget.querySelector(selector);
+		if(nextEl) {
+			nextEl.focus();
+			lastFocused.current = nextEl;
+		}
+	});
+
 	const handleFocus = useCallback(ev => {
 		if(isFocused) {
 			return;
 		}
-
 
 		if(ref.current === null) {
 			setTimeout(handleFocus);
@@ -93,6 +103,15 @@ const useFocusManager = (ref, { overrideFocusRef = null, initialFocusPicker = nu
 		setIsFocused(true);
 		ref.current.tabIndex = -1;
 
+
+		if(initialFocusPickerRef.current) {
+			const selectedCandidate = initialFocusPickerRef.current(ev)
+			if(selectedCandidate) {
+				selectedCandidate.focus();
+				return;
+			}
+		}
+
 		const candidates = Array.from(ref.current.querySelectorAll('[tabIndex="-2"]:not([disabled])'));
 		if(lastFocused.current !== null && candidates.includes(lastFocused.current)) {
 			lastFocused.current.focus();
@@ -100,18 +119,9 @@ const useFocusManager = (ref, { overrideFocusRef = null, initialFocusPicker = nu
 			// keep the focus on the candidate pressed
 			return;
 		} else if(ev.target === ev.currentTarget && candidates.length > 0) {
-			if(initialFocusPicker) {
-				const selectedCandidate = candidates.find(initialFocusPicker);
-				if(selectedCandidate) {
-					selectedCandidate.focus();
-				} else {
-					candidates[0].focus();
-				}
-			} else {
-				candidates[0].focus();
-			}
+			candidates[0].focus();
 		}
-	})
+	});
 
 	const handleBlur = useCallback(ev => {
 		if(ev.relatedTarget &&
@@ -150,7 +160,8 @@ const useFocusManager = (ref, { overrideFocusRef = null, initialFocusPicker = nu
 		}
 	}, [overrideFocusRef && overrideFocusRef.current])
 
-	return { handleNext, handlePrevious, handleDrillDownNext, handleDrillDownPrev, handleFocus, handleBlur, registerAutoFocus };
+	return { handleNext, handlePrevious, handleDrillDownNext, handleDrillDownPrev, handleFocus,
+		handleBlur, handleBySelector, registerAutoFocus };
 };
 
 export { useFocusManager };

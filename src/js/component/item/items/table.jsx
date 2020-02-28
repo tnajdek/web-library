@@ -14,7 +14,8 @@ import TableBody from './table-body';
 import TableRow from './table-row';
 import { applyChangesToVisibleColumns, resizeVisibleColumns } from '../../../utils';
 import { ATTACHMENT } from '../../../constants/dnd';
-import { createAttachmentsFromDropped, fetchSource, preferenceChange, triggerFocus } from '../../../actions';
+import { chunkedTrashOrDelete, createAttachmentsFromDropped, fetchSource, navigate,
+	preferenceChange, triggerFocus } from '../../../actions';
 import { useFocusManager, useSourceData } from '../../../hooks';
 
 const ROWHEIGHT = 26;
@@ -62,11 +63,29 @@ const Table = memo(() => {
 		columnsData.find(column => 'sort' in column) || { field: 'title', sort: 'asc' },
 		[columnsData]
 	);
-	const { handleNext, handlePrevious, handleDrillDownNext, handleDrillDownPrev, handleFocus,
-		handleBlur } = useFocusManager(
-			tableRef,
-			{ isCarousel: false, initialFocusPicker: candidate => candidate.classList.contains('active') }
-		);
+
+	const focusOnSelected = () => {
+		if(tableRef.current) {
+			const cursorEl = tableRef.current.querySelector('[aria-selected="true"]');
+			if(cursorEl) {
+				return cursorEl;
+			} else {
+				if(selectedItemKeys && keys && selectedItemKeys.length === 0 && keys.length > 0) {
+					dispatch(navigate({ items: [keys[0]] }));
+					const cursorEl = tableRef.current.querySelector(`[aria-rowindex="0"]`);
+					if(cursorEl) {
+						return cursorEl;
+					}
+				} else {
+					return tableRef;
+				}
+			}
+		}
+	};
+
+	const { handleFocus, handleBlur, handleBySelector } = useFocusManager(tableRef,
+		{ isCarousel: false, initialFocusPicker: focusOnSelected }
+	);
 
 	const dispatch = useDispatch();
 
@@ -197,16 +216,100 @@ const Table = memo(() => {
 	});
 
 	const handleKeyDown = useCallback(ev => {
+		var vector;
 		if(ev.key === 'ArrowUp') {
-			handlePrevious(ev, { useCurrentTarget: false });
+			vector = -1;
 		} else if(ev.key === 'ArrowDown') {
-			handleNext(ev, { useCurrentTarget: false });
+			vector = 1;
+		} else if(ev.key === 'Backspace') {
+			dispatch(chunkedTrashOrDelete(selectedItemKeys));
+			dispatch(navigate({ items: [] }));
+			return;
+		} else if(ev.key === 'Home' && keys) {
+			if(keys[0]) {
+				dispatch(navigate({ items: [keys[0]] }));
+			}
+		} else if(ev.key === 'End') {
+			if(keys[keys.length - 1]) {
+				dispatch(navigate({ items: [keys[keys.length - 1]] }));
+			}
+		} else {
+			return;
 		}
+
+		if(!vector) {
+			return;
+		}
+
+		ev.preventDefault();
+
+		const lastItemKey = selectedItemKeys[selectedItemKeys.length - 1];
+		const index = keys.findIndex(key => key && key === lastItemKey);
+		const nextIndex = index + vector;
+
+		//check bounds
+		if(vector > 0 && index + 1 >= keys.length) {
+			return;
+		}
+
+		var nextKeys;
+		var cursorIndex;
+
+		if(vector < 0 && index + vector < 0) {
+			//@TODO: navigate to header
+			// if(!ev.getModifierState('Shift')) {
+			// 	nextKeys = [];
+			// 	tableBodyRef.current.closest('.items-table').querySelector('.items-table-head').focus();
+			// }
+		} else {
+			if(ev.getModifierState('Shift')) {
+				if(selectedItemKeys.includes(keys[nextIndex])) {
+					if(keys.slice(...(vector > 0 ? [0, index] : [index + 1])).some(
+						key => selectedItemKeys.includes(key)
+					)) {
+						let offset = 1;
+						let boundry = vector > 0 ? keys.length - 1 : 0;
+						while(index + (offset * vector) !== boundry &&
+							selectedItemKeys.includes(keys[index + (offset * vector)].key)
+						) {
+							offset++;
+						}
+						var consecutiveCounter = 1;
+						while(selectedItemKeys.includes(keys[index + (offset * vector) + consecutiveCounter].key)) {
+							consecutiveCounter++;
+						}
+						var consecutiveKeys;
+						if(vector > 0) {
+							consecutiveKeys = keys.slice(index + offset - consecutiveCounter + 1, index + offset);
+						} else {
+							consecutiveKeys = keys.slice(index - offset, index - offset + consecutiveCounter).reverse();
+						}
+						nextKeys = [
+							...selectedItemKeys.filter(k => !consecutiveKeys.includes(k)),
+							...consecutiveKeys,
+							keys[index + (offset * vector)]
+						];
+						cursorIndex = index + (offset * vector);
+					} else {
+						nextKeys = selectedItemKeys.filter(k => k !== keys[index]);
+						cursorIndex = index;
+					}
+				} else {
+					nextKeys = [...selectedItemKeys, keys[nextIndex]];
+					cursorIndex = nextIndex;
+				}
+			} else {
+				nextKeys = [keys[nextIndex]];
+				cursorIndex = nextIndex;
+			}
+		}
+		dispatch(navigate({ items: nextKeys }));
+		handleBySelector(ev, `[aria-rowindex="${cursorIndex}"]`);
 	});
 
 	const handleTableFocus = useCallback(ev => {
-		dispatch(triggerFocus('items-table', true));
 		handleFocus(ev);
+		dispatch(triggerFocus('items-table', true));
 	});
 
 	const handleTableBlur = useCallback(ev => {
@@ -286,7 +389,8 @@ const Table = memo(() => {
 							role="grid"
 							aria-multiselectable="true"
 							aria-readonly="true"
-							aria-label="items table"
+							aria-label="items"
+							aria-rowcount={ totalResults }
 						>
 							<HeaderRow
 								ref={ headerRef }
