@@ -1,5 +1,3 @@
-'use strict';
-
 import api from 'zotero-api-client';
 
 import {
@@ -20,46 +18,55 @@ import {
 
 import queue from './queue';
 import { get } from '../utils';
+import { makeApiRequest } from './common';
 
-const fetchCollections = (libraryKey, { start = 0, limit = 50, sort = 'dateModified', direction = "desc" } = {}) => {
-	return async (dispatch, getState) => {
-		dispatch({
-			type: REQUEST_COLLECTIONS_IN_LIBRARY,
-			libraryKey,
-			start,
-			limit,
-			sort,
-			direction,
-		});
-		try {
-			const { config } = getState();
-			const response = await api(config.apiKey, config.apiConfig)
-				.library(libraryKey)
-				.collections()
-				.get({ start, limit, sort, direction });
-			const collections = response.getData();
-
-			dispatch({
-				type: RECEIVE_COLLECTIONS_IN_LIBRARY,
-				libraryKey,
-				collections,
-				response,
-				start,
-				limit,
-				sort,
-				direction,
-			});
-			return { collections, response };
-		} catch(error) {
-			dispatch({
-				type: ERROR_COLLECTIONS_IN_LIBRARY,
-				libraryKey,
-				error
-			});
-			throw error;
-		}
-	};
+const CollectionsGet = {
+	exec: (apiBase, state, libraryKey, { start = 0, limit = 50, sort = 'dateModified', direction = "desc" } = {}) =>
+		apiBase(state.config.apiKey, state.config.apiConfig)
+		.library(libraryKey)
+		.collections()
+		.get({ start, limit, sort, direction }),
+	request: (libraryKey, { start = 0, limit = 50, sort = 'dateModified', direction = "desc" } = {}) => ({
+		type: REQUEST_COLLECTIONS_IN_LIBRARY, libraryKey, start, limit, sort, direction,
+	}),
+	response: (response, libraryKey, { start = 0, limit = 50, sort = 'dateModified', direction = "desc" } = {}) => ({
+		type: RECEIVE_COLLECTIONS_IN_LIBRARY, libraryKey, collections: response.getData(), response,
+		start, limit, sort, direction,
+	}),
+	error: (error, libraryKey, { start = 0, limit = 50, sort = 'dateModified', direction = "desc" } = {}) => ({
+		type: ERROR_COLLECTIONS_IN_LIBRARY, libraryKey, error, start, limit, sort, direction,
+	}),
+	value: response => ({ collections: response.getData(), response }),
 };
+
+const CollectionsCreate = {
+	exec: (apiBase, state, localCollections, libraryKey) =>
+		apiBase(state.config.apiKey, state.config.apiConfig)
+			.library(libraryKey)
+			.collections()
+			.post(localCollections),
+	request: (localCollections, libraryKey) => ({
+		type: REQUEST_CREATE_COLLECTIONS,
+		libraryKey,
+		collections: localCollections
+	}),
+	response: (response, localCollections, libraryKey) => ({
+		type: RECEIVE_CREATE_COLLECTIONS,
+		libraryKey,
+		collections: response.getData(),
+		response
+	}),
+	error: (error, localCollections, libraryKey) => ({
+		type: ERROR_CREATE_COLLECTIONS,
+		error,
+		libraryKey,
+		collections: localCollections,
+	}),
+	value: response => ({ collections: response.getData(), response })
+};
+
+const fetchCollections = makeApiRequest(CollectionsGet);
+const createCollections = makeApiRequest(CollectionsCreate);
 
 const fetchAllCollections = (libraryKey, { sort = 'dateModified', direction = "desc", shouldAlwaysFetch = false } = {}) => {
 	return async (dispatch, getState) => {
@@ -95,48 +102,6 @@ const createCollection = (properties, libraryKey) => {
 		);
 		return collections[0];
 	}
-}
-
-const createCollections = (localCollections, libraryKey) => {
-	return async (dispatch, getState) => {
-		const state = getState();
-		const config = state.config;
-
-		dispatch({
-			type: REQUEST_CREATE_COLLECTIONS,
-			libraryKey,
-			collections: localCollections
-		});
-
-		try {
-			const response = await api(config.apiKey, config.apiConfig)
-				.library(libraryKey)
-				.collections()
-				.post(localCollections);
-
-			if(!response.isSuccess()) {
-				throw response.getErrors();
-			}
-
-			const remoteCollections = response.getData();
-
-			dispatch({
-				type: RECEIVE_CREATE_COLLECTIONS,
-				libraryKey,
-				collections: remoteCollections,
-				response
-			});
-			return remoteCollections;
-		} catch(error) {
-			dispatch({
-					type: ERROR_CREATE_COLLECTIONS,
-					error,
-					libraryKey,
-					collections: localCollections,
-				});
-			throw error;
-		}
-	};
 }
 
 const updateCollection = (collectionKey, patch, libraryKey) => {
@@ -250,6 +215,8 @@ const deleteCollection = (collection, libraryKey) => {
 }
 
 export {
+	CollectionsGet,
+	CollectionsCreate,
 	fetchCollections,
 	fetchAllCollections,
 	createCollection,

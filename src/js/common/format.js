@@ -1,5 +1,3 @@
-'use strict';
-
 const entityToChar = str => {
 	const textarea = document.createElement('textarea');
 	textarea.innerHTML = str;

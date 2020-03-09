@@ -10,7 +10,8 @@ const isDuplicate = (error, prevError) =>
 
 const getErrorMessage = error => {
 	if(error instanceof TypeError) {
-		return `Unable to communicate with Zotero server. Please check your connection. ${error.message}.`;
+		console.error(error);
+		return `Unable to communicate with Zotero server. ${error.message}.`;
 	}
 	if(typeof error === 'object' && 'getResponseType' in error && error.getResponseType() === 'ErrorResponse') {
 		return error.reason ?

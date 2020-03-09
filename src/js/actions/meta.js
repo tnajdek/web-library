@@ -1,5 +1,3 @@
-'use strict';
-
 import {
     REQUEST_ITEM_TYPE_CREATOR_TYPES,
     RECEIVE_ITEM_TYPE_CREATOR_TYPES,
@@ -11,94 +9,92 @@ import {
     RECEIVE_ITEM_TEMPLATE,
     ERROR_ITEM_TEMPLATE,
 } from '../constants/actions';
-import apiBase from 'zotero-api-client';
 import cache from 'zotero-api-client-cache';
-const api = apiBase().use(cache()).api;
+import { makeApiRequest } from './common';
 
-const fetchItemTypeCreatorTypes = itemType => {
-	return async (dispatch, getState) => {
-		dispatch({
-			type: REQUEST_ITEM_TYPE_CREATOR_TYPES,
-			itemType
-		});
-		let config = getState().config;
-		try {
-			let creatorTypes = (await api(config.apiKey, config.apiConfig)
-				.itemTypeCreatorTypes(itemType)
-				.get())
-			.getData();
 
-			dispatch({
-				type: RECEIVE_ITEM_TYPE_CREATOR_TYPES,
-				itemType,
-				creatorTypes
-			});
-			return creatorTypes;
-		} catch(error) {
-			dispatch({
-				type: ERROR_ITEM_TYPE_CREATOR_TYPES,
-				error,
-				itemType
-			});
-			throw error;
-		}
-	};
+const ItemTypeCreatorTypes = {
+	exec: (apiBase, state, itemType) =>
+		apiBase()
+			.use(cache())
+			.api(state.config.apiKey, state.config.apiConfig)
+			.itemTypeCreatorTypes(itemType)
+			.get(),
+	request: itemType => ({
+		type: REQUEST_ITEM_TYPE_CREATOR_TYPES,
+		itemType
+	}),
+	response: (response, itemType) => ({
+		creatorTypes: response.getData(),
+		itemType,
+		type: RECEIVE_ITEM_TYPE_CREATOR_TYPES,
+	}),
+	error: (error, itemType) => ({
+		type: ERROR_ITEM_TYPE_CREATOR_TYPES,
+		error,
+		itemType
+	}),
+	value: (response) => response.getData(),
 };
 
-const fetchItemTypeFields = itemType => {
-	return async (dispatch, getState) => {
-		dispatch({
-			type: REQUEST_ITEM_TYPE_FIELDS,
-			itemType
-		});
-		let config = getState().config;
-		try {
-			let fields = (await api(config.apiKey, config.apiConfig).itemTypeFields(itemType).get()).getData();
-			dispatch({
-				type: RECEIVE_ITEM_TYPE_FIELDS,
-				itemType,
-				fields
-			});
-			return fields;
-		} catch(error) {
-			dispatch({
-				type: ERROR_ITEM_TYPE_FIELDS,
-				itemType,
-				error
-			});
-			throw error;
-		}
-	};
+const ItemTypeFields = {
+	exec: (apiBase, state, itemType) =>
+		apiBase()
+			.use(cache())
+			.api(state.config.apiKey, state.config.apiConfig)
+			.itemTypeFields(itemType)
+			.get(),
+	request: itemType => ({
+		type: REQUEST_ITEM_TYPE_FIELDS,
+		itemType
+	}),
+	response: (response, itemType) => ({
+		type: RECEIVE_ITEM_TYPE_FIELDS,
+		itemType,
+		fields: response.getData()
+	}),
+	error: (error, itemType) => ({
+		type: ERROR_ITEM_TYPE_FIELDS,
+		itemType,
+		error
+	}),
+	value: (response) => response.getData(),
 };
 
-const fetchItemTemplate = (itemType, opts = {}) => {
-	return async (dispatch, getState) => {
-		dispatch({
-			type: REQUEST_ITEM_TEMPLATE,
-			itemType
-		});
-		let config = getState().config;
-		try {
-			let template = (await api(config.apiKey, config.apiConfig).template(itemType).get(opts)).getData();
-			dispatch({
-				type: RECEIVE_ITEM_TEMPLATE,
-				itemType,
-				template
-			});
-			return template;
-		} catch(error) {
-			dispatch({
-				type: ERROR_ITEM_TEMPLATE,
-				itemType,
-				error
-			});
-			throw error;
-		}
-	};
-};
+const ItemTemplate = {
+	exec: (apiBase, state, itemType, opts = {}) =>
+		apiBase()
+			.use(cache())
+			.api(state.config.apiKey, state.config.apiConfig)
+			.template(itemType)
+			.get(opts),
+	request: (itemType, opts = {}) => ({
+		type: REQUEST_ITEM_TEMPLATE,
+		itemType,
+		opts
+	}),
+	response: (response, itemType) => ({
+		type: RECEIVE_ITEM_TEMPLATE,
+		itemType,
+		template: response.getData()
+	}),
+	error: (error, itemType) => ({
+		type: ERROR_ITEM_TEMPLATE,
+		itemType,
+		error
+	}),
+	value: (response) => response.getData(),
+}
+
+const fetchItemTypeCreatorTypes = makeApiRequest(ItemTypeCreatorTypes);
+const fetchItemTypeFields = makeApiRequest(ItemTypeFields);
+const fetchItemTemplate = makeApiRequest(ItemTemplate);
 
 export {
+	fetchItemTemplate,
 	fetchItemTypeCreatorTypes,
 	fetchItemTypeFields,
-	fetchItemTemplate,
+	ItemTemplate,
+	ItemTypeCreatorTypes,
+	ItemTypeFields,
 };
