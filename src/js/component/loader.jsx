@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import Icon from './ui/icon';
 import Library from '../component/library';
+import ShareTarget from '../component/share-target';
 import { preferencesLoad, initialize, fetchLibrarySettings, fetchAllCollections, fetchAllGroups,
 toggleTransitions, triggerResizeViewport } from '../actions';
 import { get } from '../utils';
@@ -16,6 +17,7 @@ const LoadingCover = () => (
 const Loader = () => {
 	const dispatch = useDispatch();
 
+	const isShareTarget = useSelector(state => state.current.view === 'share-target');
 	const libraryKey = useSelector(state => state.current.libraryKey);
 	const userLibraryKey = useSelector(state => state.current.userLibraryKey);
 	const config = useSelector(state => state.config);
@@ -54,7 +56,7 @@ const Loader = () => {
 		}
 	}, []);
 
-	return isReady ? <Library /> : <LoadingCover />;
+	return isReady ? isShareTarget ? <ShareTarget /> : <Library /> : <LoadingCover />;
 }
 
 export default Loader;

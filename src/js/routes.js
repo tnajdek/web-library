@@ -26,6 +26,7 @@ const getVariants = prefix => {
 };
 
 export const routes = [
+	'/:view(share-target)',
 	'/:view(libraries)',
 	...getVariants(`/groups/:groupid/:groupslug/:source(collections)/:collection(${singleIdRe})`),
 	...getVariants('/groups/:groupid/:groupslug/:source(trash)'),

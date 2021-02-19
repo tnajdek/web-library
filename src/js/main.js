@@ -9,4 +9,18 @@ config.menus = menuConfigDom ? JSON.parse(menuConfigDom.textContent) : null;
 
 if(targetDom) {
 	init(targetDom, config);
+
+	if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('/service-worker.js');
+	}
+
+	window.addEventListener('beforeinstallprompt', (event) => {
+		console.log('beforeinstallprompt', event);
+		window.deferredPrompt = event;
+	});
+
+	window.addEventListener('appinstalled', (event) => {
+		console.log('appinstalled', event);
+		window.deferredPrompt = null;
+	});
 }
