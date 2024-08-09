@@ -10,7 +10,7 @@ import ColorPicker from '../ui/color-picker';
 import Select from '../form/select';
 import { maxColoredTags } from '../../constants/constants';
 
-const colors = ['#FF6666', '#FF8C19', '#999999', '#5FB236', '#009980', '#2EA8E5', '#576DD9', '#A28AE5', '#A6507B' ];
+const colors = ['#ff6666', '#ff8c19', '#999999', '#5fb236', '#009980', '#2ea8e5', '#576dd9', '#a28ae5', '#a6507b' ];
 
 const pickAvailableTagColor = ((colors, tagColorsData) => {
 	const tagColors = tagColorsData.map(tgc => tgc.color);
@@ -104,6 +104,7 @@ const TagColorManager = forwardRef(({ onToggleTagManager, tag }, outerRef) => {
 							selectedColor={tagColor}
 							colors={colors}
 							onColorPicked={handleColorPicked}
+							useTagColorLookup={ true }
 						/>
 					</div>
 					<label className="col-form-label">Position</label>

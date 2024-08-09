@@ -1,11 +1,11 @@
 export default {
-	'#FF6666': 'red',
-	'#FF8C19': 'orange',
+	'#ff6666': 'red',
+	'#ff8c19': 'orange',
 	'#999999': 'gray',
-	'#5FB236': 'green',
+	'#5fb236': 'green',
 	'#009980': 'cyan',
-	'#2EA8E5': 'bright blue',
-	'#576DD9': 'dark blue',
-	'#A28AE5': 'violet',
-	'#A6507B': 'dark pink'
+	'#2ea8e5': 'bright blue',
+	'#576dd9': 'dark blue',
+	'#a28ae5': 'violet',
+	'#a6507b': 'dark pink'
 };
