@@ -20,8 +20,8 @@ const TouchTagselectorActions = memo(() => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleToggleDropdown = useCallback(() => {
-		setIsOpen(!isOpen);
-	}, [isOpen]);
+		setIsOpen(isOpen => !isOpen);
+	}, []);
 
 	const handleToggleTagsHideAutomatic = useCallback(() => {
 		dispatch(toggleHideAutomaticTags());

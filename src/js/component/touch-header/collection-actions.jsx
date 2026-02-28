@@ -14,8 +14,8 @@ const CollectionActions = props => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleToggleDropdown = useCallback(() => {
-		setIsOpen(!isOpen);
-	}, [isOpen]);
+		setIsOpen(isOpen => !isOpen);
+	}, []);
 
 	const handleNewCollectionClick = useCallback(() => {
 		const opts = {};

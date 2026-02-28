@@ -48,9 +48,9 @@ const NewItemSelector = props => {
 			return;
 		}
 
-		setIsOpen(!isOpen);
+		setIsOpen(isOpen => !isOpen);
 		setIsSecondaryVisible(false);
-	}, [disabled, isOpen]);
+	}, [disabled]);
 
 	const handleToggleMore = useCallback(ev => {
 		ev.preventDefault();

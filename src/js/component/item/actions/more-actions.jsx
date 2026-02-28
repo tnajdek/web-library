@@ -103,8 +103,8 @@ const MoreActionsDropdownDesktop = memo(props => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleToggleDropdown = useCallback(() => {
-		setIsOpen(!isOpen);
-	}, [isOpen]);
+		setIsOpen(isOpen => !isOpen);
+	}, []);
 
 	const handleKeyDown = useCallback(ev => {
 		if (ev.target !== ev.currentTarget) {
@@ -172,8 +172,8 @@ const MoreActionsDropdownTouch = memo(() => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleDropdownToggle = useCallback(() => {
-		setIsOpen(!isOpen);
-	}, [isOpen]);
+		setIsOpen(isOpen => !isOpen);
+	}, []);
 
 	return (
 		<Dropdown

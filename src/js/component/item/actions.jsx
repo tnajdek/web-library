@@ -42,8 +42,8 @@ const ItemActionsTouch = memo(() => {
 		!(isSearchMode && isSingleColumn);
 
 	const handleDropdownToggle = useCallback(() => {
-		setIsOpen(!isOpen);
-	}, [isOpen]);
+		setIsOpen(isOpen => !isOpen);
+	}, []);
 
 	const handleSelectModeToggle = useCallback(() => {
 		dispatch(toggleSelectMode());
