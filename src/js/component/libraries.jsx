@@ -91,7 +91,7 @@ const LibraryNode = props => {
 	}
 
 	return (
-        <Node
+		<Node
 			className={ cx({
 				'library-node': true, // using .library risks conflicting css rules
 				'my-library': isMyLibrary,
@@ -154,7 +154,7 @@ const LibraryNode = props => {
 				)
 			}
 		</Node>
-    );
+	);
 }
 
 LibraryNode.propTypes = {

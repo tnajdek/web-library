@@ -941,7 +941,9 @@ const CollectionTree = props => {
 	const highlightedCollections = useSelector(state => state.current.highlightedCollections);
 	const prevHighlightedCollections = usePrevious(highlightedCollections);
 
-	const isCurrentLibrary = !pickerMode && parentLibraryKey === stateSelectedLibraryKey;
+	const isCurrentLibrary = pickerMode
+		? !!dataObjects?.[currentCollectionKey]
+		: parentLibraryKey === stateSelectedLibraryKey;
 	const usesItemsNode = (!pickerMode && isSingleColumn) || [PICKS_SINGLE_ITEM, PICKS_MULTIPLE_ITEMS].includes(pickerMode);
 	const allCollections = useMemo(() => Object.values(dataObjects ?? {}).filter(dataObject => dataObject[Symbol.for('type')] === 'collection'), [dataObjects]);
 

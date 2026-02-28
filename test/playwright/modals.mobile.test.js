@@ -1,5 +1,6 @@
 import { loadFixtureState, closeServer, makeCustomHandler } from '../utils/fixed-state-server.js';
 import { test, expect } from '../utils/playwright-fixtures.js';
+import { isSingleColumn } from '../utils/common.js';
 import itemsInCollectionAlgorithms from '../fixtures/response/test-user-get-items-in-collection-algorithms.json' assert { type: 'json' };
 
 test.describe('Mobile Modals', () => {
@@ -76,6 +77,104 @@ test.describe('Mobile Modals', () => {
 		// The URL should not have changed -- opening the modal should not navigate
 		// to the attachment details view
 		expect(page.url()).toBe(urlBefore);
+
+		await page.close();
+	});
+
+	test('Add item to a collection using modal', async ({ page, serverPort }, testInfo) => {
+		// iPad Pro Landscape uses the desktop modal layout (tree with twisty
+		// expand/collapse) rather than touch drill-down navigation
+		test.skip(testInfo.project.name.includes('iPad Pro Landscape'));
+		server = await loadFixtureState('mobile-test-user-item-list-view', serverPort, page);
+
+		// Enter select mode
+		if (isSingleColumn(testInfo)) {
+			const dropdownToggle = page.locator('.item-actions-touch').first();
+			await expect(dropdownToggle).toBeVisible();
+			await dropdownToggle.dispatchEvent('click');
+
+			const selectItems = page.getByRole('menuitem', { name: 'Select Items' });
+			await expect(selectItems).toBeVisible();
+			await selectItems.dispatchEvent('click');
+		} else {
+			const selectButton = page.getByRole('button', { name: 'Select', exact: true });
+			await expect(selectButton).toBeVisible();
+			await selectButton.dispatchEvent('click');
+		}
+
+		// Select the first item in the list
+		const firstItem = page.getByRole('option').first();
+		await expect(firstItem).toBeVisible();
+		await firstItem.dispatchEvent('click');
+
+		// Click the "Add to Collection" button in the touch footer
+		const addToCollectionButton = page.locator('.touch-footer button:has(.icon-add-to-collection)');
+		await expect(addToCollectionButton).toBeVisible();
+		await addToCollectionButton.dispatchEvent('click');
+
+		// Wait for the modal to appear and settle
+		const modal = page.getByRole('dialog', { name: 'Select Collection' });
+		await expect(modal).toBeVisible();
+		await page.waitForFunction(() =>
+			document.querySelector('.collection-select-modal')?.classList.contains('ReactModal__Content--after-open')
+		);
+
+		// Wait for the slide transition to complete
+		await page.waitForTimeout(600);
+
+		// Navigate into "My Library"
+		// Node component selects on mousedown, not click (see node.jsx handleMouseDown)
+		const myLibrary = modal.getByRole('treeitem', { name: 'My Library' });
+		await expect(myLibrary).toBeVisible();
+		await myLibrary.dispatchEvent('mousedown');
+
+		// Navigate into the "Dogs" collection
+		const dogs = modal.getByRole('treeitem', { name: 'Dogs' });
+		await expect(dogs).toBeVisible();
+		await dogs.dispatchEvent('mousedown');
+
+		// Assert that subcollections are visible
+		const borderCollie = modal.getByRole('treeitem', { name: 'Border Collie' });
+		await expect(borderCollie).toBeVisible();
+
+		// Pick "Border Collie" as the target collection
+		const borderCollieCheckbox = borderCollie.getByRole('checkbox');
+		await borderCollieCheckbox.dispatchEvent('click');
+
+		// The "Add" button should now be enabled
+		const addButton = modal.getByRole('button', { name: 'Add' });
+		await expect(addButton).toBeEnabled();
+
+		// Intercept the POST request to verify the item is added to the correct collection
+		const requestPromise = page.waitForRequest(
+			req => req.url().includes('/api/users/1/items') && req.method() === 'POST'
+		);
+		await page.route('**/api/users/1/items', route => {
+			if (route.request().method() === 'POST') {
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify({
+						successful: { '0': {} },
+						unchanged: {},
+						failed: {}
+					}),
+				});
+			} else {
+				route.continue();
+			}
+		});
+
+		await addButton.dispatchEvent('click');
+		const request = await requestPromise;
+		const body = request.postDataJSON();
+
+		// First selected item (HHVQTHFT) should be added to Border Collie (HNLXYCXS)
+		// while retaining its existing Dogs (WTTJ2J56) collection
+		expect(body[0].key).toBe('HHVQTHFT');
+		expect(body[0].collections).toContain('WTTJ2J56');
+		expect(body[0].collections).toContain('HNLXYCXS');
+		expect(body[0].collections).toHaveLength(2);
 
 		await page.close();
 	});
