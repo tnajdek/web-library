@@ -14,18 +14,16 @@ test.describe('Mobile Modals', () => {
 		server = await loadFixtureState('mobile-test-user-library-view', serverPort, page);
 
 		// Open the "More" dropdown on the "AI" collection.
-		// Use dispatchEvent to bypass Playwright's pointer-interception check --
-		// on iPad the expanded "Dogs" subcollection list visually overlaps sibling tree items.
+		// force: true -- on iPad the expanded "Dogs" subcollection list visually
+		// overlaps sibling tree items.
 		const aiTreeItem = page.getByRole('treeitem', { name: 'AI' });
 		await expect(aiTreeItem).toBeVisible();
 		const moreButton = aiTreeItem.getByTitle('More');
-		await moreButton.dispatchEvent('click');
+		await moreButton.tap({ force: true });
 
-		// Click "New Subcollection"
-		// Use dispatchEvent to avoid switching to desktop mode on ipad-pro-landscape-emulator
 		const menuItem = page.getByRole('menuitem', { name: 'New Subcollection' });
 		await expect(menuItem).toBeVisible();
-		await menuItem.dispatchEvent('click');
+		await menuItem.tap();
 
 		// Wait for the modal to appear and settle
 		const modal = page.getByRole('dialog', { name: 'Add a New Collection' });
@@ -55,11 +53,11 @@ test.describe('Mobile Modals', () => {
 		const fullText = page.getByRole('listitem', { name: 'Full Text' });
 		await expect(fullText).toBeVisible();
 		const optionsButton = fullText.getByRole('button', { name: 'Attachment Options' });
-		await optionsButton.dispatchEvent('click');
+		await optionsButton.tap();
 
 		const menuItem = page.getByRole('menuitem', { name: 'Change Parent Item' });
 		await expect(menuItem).toBeVisible();
-		await menuItem.dispatchEvent('click');
+		await menuItem.tap();
 
 		// Wait for the modal to appear and settle
 		const modal = page.getByRole('dialog', { name: 'Change Parent Item' });
@@ -82,35 +80,36 @@ test.describe('Mobile Modals', () => {
 	});
 
 	test('Add item to a collection using modal', async ({ page, serverPort }, testInfo) => {
-		// iPad Pro Landscape uses the desktop modal layout (tree with twisty
-		// expand/collapse) rather than touch drill-down navigation
-		test.skip(testInfo.project.name.includes('iPad Pro Landscape'));
-		server = await loadFixtureState('mobile-test-user-item-list-view', serverPort, page);
+		const handlers = [
+			makeCustomHandler('/api/users/1/settings/tagColors', { value: [] }),
+			makeCustomHandler('/api/users/1/items', []),
+		];
+		server = await loadFixtureState('mobile-test-user-item-list-view', serverPort, page, handlers);
 
 		// Enter select mode
 		if (isSingleColumn(testInfo)) {
 			const dropdownToggle = page.locator('.item-actions-touch').first();
 			await expect(dropdownToggle).toBeVisible();
-			await dropdownToggle.dispatchEvent('click');
+			await dropdownToggle.tap();
 
 			const selectItems = page.getByRole('menuitem', { name: 'Select Items' });
 			await expect(selectItems).toBeVisible();
-			await selectItems.dispatchEvent('click');
+			await selectItems.tap();
 		} else {
 			const selectButton = page.getByRole('button', { name: 'Select', exact: true });
 			await expect(selectButton).toBeVisible();
-			await selectButton.dispatchEvent('click');
+			await selectButton.tap();
 		}
 
 		// Select the first item in the list
 		const firstItem = page.getByRole('option').first();
 		await expect(firstItem).toBeVisible();
-		await firstItem.dispatchEvent('click');
+		await firstItem.tap();
 
-		// Click the "Add to Collection" button in the touch footer
+		// Tap the "Add to Collection" button in the touch footer
 		const addToCollectionButton = page.locator('.touch-footer button:has(.icon-add-to-collection)');
 		await expect(addToCollectionButton).toBeVisible();
-		await addToCollectionButton.dispatchEvent('click');
+		await addToCollectionButton.tap();
 
 		// Wait for the modal to appear and settle
 		const modal = page.getByRole('dialog', { name: 'Select Collection' });
@@ -123,15 +122,16 @@ test.describe('Mobile Modals', () => {
 		await page.waitForTimeout(600);
 
 		// Navigate into "My Library"
-		// Node component selects on mousedown, not click (see node.jsx handleMouseDown)
 		const myLibrary = modal.getByRole('treeitem', { name: 'My Library' });
 		await expect(myLibrary).toBeVisible();
-		await myLibrary.dispatchEvent('mousedown');
+		await myLibrary.tap();
 
 		// Navigate into the "Dogs" collection
+		// force: true -- Dogs is disabled (items already belong to it) but tapping
+		// still navigates into its subcollections in drill-down mode
 		const dogs = modal.getByRole('treeitem', { name: 'Dogs' });
 		await expect(dogs).toBeVisible();
-		await dogs.dispatchEvent('mousedown');
+		await dogs.tap({ force: true });
 
 		// Assert that subcollections are visible
 		const borderCollie = modal.getByRole('treeitem', { name: 'Border Collie' });
@@ -139,7 +139,7 @@ test.describe('Mobile Modals', () => {
 
 		// Pick "Border Collie" as the target collection
 		const borderCollieCheckbox = borderCollie.getByRole('checkbox');
-		await borderCollieCheckbox.dispatchEvent('click');
+		await borderCollieCheckbox.tap();
 
 		// The "Add" button should now be enabled
 		const addButton = modal.getByRole('button', { name: 'Add' });
@@ -165,7 +165,7 @@ test.describe('Mobile Modals', () => {
 			}
 		});
 
-		await addButton.dispatchEvent('click');
+		await addButton.tap();
 		const request = await requestPromise;
 		const body = request.postDataJSON();
 

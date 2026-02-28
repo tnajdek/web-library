@@ -20,48 +20,32 @@ export default defineConfig({
 		}
 	},
 	projects: [
+		// -- Desktop (functional tests) --
 		{
 			name: 'Desktop Chrome',
-			testMatch: /.*\.(desktop|keyboard)\.test\.js/,
-			use: {
-				...devices['Desktop Chrome'],
-				...commonContextDesc,
-			},
-		},
-		{
-			name: 'Desktop Chrome Dark',
 			testMatch: /.*\.desktop\.test\.js/,
 			use: {
 				...devices['Desktop Chrome'],
 				...commonContextDesc,
-				colorScheme: 'dark',
 			},
 		},
 		{
 			name: 'Desktop Safari',
-			testMatch: /.*\.(desktop|keyboard)\.test\.js/,
+			testMatch: /.*\.desktop\.test\.js/,
 			use: {
 				...devices['Desktop Safari'],
 				...commonContextDesc,
 			},
 		},
 		{
-			name: 'Desktop Chrome Small',
-			testMatch: /.*\.desktop\.test\.js/,
-			use: {
-				...devices['Desktop Chrome'],
-				viewport: {width: 1024, height: 768},
-				...commonContextDesc,
-			},
-		},
-		{
 			name: 'Desktop Firefox',
-			testMatch: /.*\.keyboard\.test\.js/,
+			testMatch: /.*\.desktop\.test\.js/,
 			use: {
 				...devices['Desktop Firefox'],
 				...commonContextDesc,
 			},
 		},
+		// -- Mobile (functional tests) --
 		{
 			name: 'Mobile iPhone',
 			testMatch: /.*\.mobile\.test\.js/,
@@ -79,15 +63,6 @@ export default defineConfig({
 			},
 		},
 		{
-			name: 'Mobile iPad Dark',
-			testMatch: /.*\.mobile\.test\.js/,
-			use: {
-				...devices['iPad (gen 7)'],
-				...commonContextDesc,
-				colorScheme: 'dark',
-			},
-		},
-		{
 			name: 'Mobile iPad Pro Landscape',
 			testMatch: /.*\.mobile\.test\.js/,
 			use: {
@@ -98,6 +73,83 @@ export default defineConfig({
 		{
 			name: 'Mobile Android',
 			testMatch: /.*\.mobile\.test\.js/,
+			use: {
+				...devices['Galaxy S24'],
+				...commonContextDesc,
+			},
+		},
+		// -- Visual Desktop (screenshot tests) --
+		{
+			name: 'Visual Desktop Chrome',
+			testMatch: /.*\.visual-desktop\.test\.js/,
+			use: {
+				...devices['Desktop Chrome'],
+				...commonContextDesc,
+			},
+		},
+		{
+			name: 'Visual Desktop Chrome Dark',
+			testMatch: /.*\.visual-desktop\.test\.js/,
+			use: {
+				...devices['Desktop Chrome'],
+				...commonContextDesc,
+				colorScheme: 'dark',
+			},
+		},
+		{
+			name: 'Visual Desktop Safari',
+			testMatch: /.*\.visual-desktop\.test\.js/,
+			use: {
+				...devices['Desktop Safari'],
+				...commonContextDesc,
+			},
+		},
+		{
+			name: 'Visual Desktop Chrome Small',
+			testMatch: /.*\.visual-desktop\.test\.js/,
+			use: {
+				...devices['Desktop Chrome'],
+				viewport: {width: 1024, height: 768},
+				...commonContextDesc,
+			},
+		},
+		// -- Visual Mobile (screenshot tests) --
+		{
+			name: 'Visual Mobile iPhone',
+			testMatch: /.*\.visual-mobile\.test\.js/,
+			use: {
+				...devices['iPhone 14'],
+				...commonContextDesc,
+			},
+		},
+		{
+			name: 'Visual Mobile iPad',
+			testMatch: /.*\.visual-mobile\.test\.js/,
+			use: {
+				...devices['iPad (gen 7)'],
+				...commonContextDesc,
+			},
+		},
+		{
+			name: 'Visual Mobile iPad Dark',
+			testMatch: /.*\.visual-mobile\.test\.js/,
+			use: {
+				...devices['iPad (gen 7)'],
+				...commonContextDesc,
+				colorScheme: 'dark',
+			},
+		},
+		{
+			name: 'Visual Mobile iPad Pro Landscape',
+			testMatch: /.*\.visual-mobile\.test\.js/,
+			use: {
+				...devices['iPad Pro 11 landscape'],
+				...commonContextDesc,
+			},
+		},
+		{
+			name: 'Visual Mobile Android',
+			testMatch: /.*\.visual-mobile\.test\.js/,
 			use: {
 				...devices['Galaxy S24'],
 				...commonContextDesc,
