@@ -1082,18 +1082,21 @@ test.describe('Navigate through the UI using keyboard', () => {
 		];
 		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page, handlers);
 
-		// Navigate to "AI" collection and open DotMenu
+		// Navigate to "AI" collection
 		await page.keyboard.press('Tab');
 		await expect(page.getByRole('treeitem', { name: 'My Library' })).toBeFocused();
 		await page.keyboard.press('ArrowDown');
 		await expect(page.getByRole('treeitem', { name: 'AI' })).toBeFocused();
 
-		// Click the "More" button on AI's treeitem to open the DotMenu
-		await page.getByRole('treeitem', { name: 'AI' }).getByTitle('More').click();
+		// Press ArrowRight to reach the "More" button, open the dropdown
+		await page.keyboard.press('ArrowRight');
+		await expect(page.getByTitle('More').first()).toBeFocused();
+		await page.keyboard.press('Enter');
 		await expect(page.getByRole('menuitem', { name: 'Create Bibliography' })).toBeVisible();
 
-		// Click "Create Bibliography"
-		await page.getByRole('menuitem', { name: 'Create Bibliography' }).click();
+		// Activate "Create Bibliography"
+		await page.getByRole('menuitem', { name: 'Create Bibliography' }).focus();
+		await page.keyboard.press('Enter');
 
 		// The Bibliography modal should open
 		const modal = page.getByRole('dialog', { name: 'Bibliography' });

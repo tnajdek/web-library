@@ -40,14 +40,14 @@ const UserTypeDetector = () => {
 	}, [dispatch]);
 
 	useEffect(() => {
-		document.addEventListener('keyup', handleKeyboard);
-		document.addEventListener('mousedown', handleMouse);
-		document.addEventListener('touchstart', handleTouch);
+		document.addEventListener('keyup', handleKeyboard, { capture: true, passive: true });
+		document.addEventListener('mousedown', handleMouse, { capture: true, passive: true });
+		document.addEventListener('touchstart', handleTouch, { capture: true, passive: true });
 
 		return () => {
-			document.removeEventListener('keyup', handleKeyboard);
-			document.removeEventListener('mousedown', handleMouse);
-			document.removeEventListener('touchstart', handleTouch);
+			document.removeEventListener('keyup', handleKeyboard, { capture: true });
+			document.removeEventListener('mousedown', handleMouse, { capture: true });
+			document.removeEventListener('touchstart', handleTouch, { capture: true });
 		}
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 

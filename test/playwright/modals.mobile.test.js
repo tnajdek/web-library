@@ -21,9 +21,10 @@ test.describe('Mobile Modals', () => {
 		await moreButton.dispatchEvent('click');
 
 		// Click "New Subcollection"
+		// Use dispatchEvent to avoid switching to desktop mode on ipad-pro-landscape-emulator
 		const menuItem = page.getByRole('menuitem', { name: 'New Subcollection' });
 		await expect(menuItem).toBeVisible();
-		await menuItem.click();
+		await menuItem.dispatchEvent('click');
 
 		// Wait for the modal to appear and settle
 		const modal = page.getByRole('dialog', { name: 'Add a New Collection' });
