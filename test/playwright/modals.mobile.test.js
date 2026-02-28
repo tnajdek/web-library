@@ -2,6 +2,7 @@ import { loadFixtureState, closeServer, makeCustomHandler } from '../utils/fixed
 import { test, expect } from '../utils/playwright-fixtures.js';
 import { isSingleColumn } from '../utils/common.js';
 import itemsInCollectionAlgorithms from '../fixtures/response/test-user-get-items-in-collection-algorithms.json' assert { type: 'json' };
+import testUserManageTags from '../fixtures/response/test-user-manage-tags.json' assert { type: 'json' };
 
 test.describe('Mobile Modals', () => {
 	let server;
@@ -77,6 +78,45 @@ test.describe('Mobile Modals', () => {
 		expect(page.url()).toBe(urlBefore);
 
 		await page.close();
+	});
+
+	test('Scrolling tag list closes open dot menu dropdown', async ({ page, serverPort }) => {
+		const handlers = [
+			makeCustomHandler('/api/users/1/tags', testUserManageTags, { totalResults: testUserManageTags.length }),
+			makeCustomHandler('/api/users/1/collections/WTTJ2J56/items/top/tags', [], { totalResults: 0 }),
+		];
+		server = await loadFixtureState('mobile-test-user-item-list-view', serverPort, page, handlers);
+
+		if (isSingleColumn(test.info())) {
+			await page.getByRole('button', { name: 'Toggle tag selector' }).tap();
+		} else {
+			await page.getByRole('button', { name: 'Open Tag Selector' }).tap();
+		}
+
+		await page.getByRole('button', { name: 'Tag Selector Options' }).tap();
+		await page.getByRole('menuitem', { name: 'Manage Tags' }).tap();
+
+		const modal = page.getByRole('dialog', { name: 'Manage Tags' });
+		await expect(modal).toBeVisible();
+		await page.waitForFunction(() =>
+			document.querySelector('.manage-tags')?.classList.contains('ReactModal__Content--after-open')
+		);
+
+		const list = modal.getByRole('list', { name: 'Tags' });
+		const tagItem = list.getByRole('listitem', { name: 'to read' });
+		await expect(tagItem).toBeVisible();
+
+		// Open the dot menu for a tag
+		await tagItem.getByRole('button', { name: 'More' }).tap();
+		const assignColor = page.getByRole('menuitem', { name: 'Assign Color' });
+		await expect(assignColor).toBeVisible();
+
+		// Scroll the tag list -- the capture-phase listener on .scroll-container should close the dropdown
+		await page.evaluate(() => {
+			document.querySelector('.manage-tags .tag-selector-list').dispatchEvent(new Event('scroll'));
+		});
+
+		await expect(assignColor).not.toBeVisible();
 	});
 
 	test('Add item to a collection using modal', async ({ page, serverPort }, testInfo) => {

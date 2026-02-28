@@ -1056,6 +1056,38 @@ const CollectionTree = props => {
 		}
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+	useEffect(() => {
+		if (dotMenuFor === null) {
+			return;
+		}
+		const root = levelWrapperRef.current;
+		if (!root) {
+			return;
+		}
+		// Find the collection node whose dot menu is open, then walk up to find
+		// the nearest scrollable ancestor. On touch devices the scroll container
+		// is the ul.nav inside the currently active LevelWrapper; on desktop it's
+		// the nav.collection-tree (or .scroll-container-touch) further up.
+		const collectionNode = root.querySelector(`[data-collection-key="${dotMenuFor}"]`);
+		if (!collectionNode) {
+			return;
+		}
+		let scrollParent = collectionNode.parentElement;
+		while (scrollParent && scrollParent !== document.body) {
+			const { overflow, overflowY } = getComputedStyle(scrollParent);
+			if (['auto', 'scroll'].includes(overflow) || ['auto', 'scroll'].includes(overflowY)) {
+				break;
+			}
+			scrollParent = scrollParent.parentElement;
+		}
+		if (!scrollParent || scrollParent === document.body) {
+			return;
+		}
+		const handleScroll = () => setDotMenuFor(null);
+		scrollParent.addEventListener('scroll', handleScroll, { passive: true });
+		return () => scrollParent.removeEventListener('scroll', handleScroll);
+	}, [dotMenuFor, setDotMenuFor]);
+
 	if(isFetchingAllCollections) {
 		// while fetching collections:
 		// On touch we allow animating into next level and render a spinner

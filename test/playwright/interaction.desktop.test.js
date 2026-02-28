@@ -4,7 +4,7 @@ import testUserRemoveItemFromCollection from '../fixtures/response/test-user-rem
 import testUserTrashItem from '../fixtures/response/test-user-trash-item.json' assert { type: 'json' };
 
 
-test.describe('Navigate through the UI using keyboard', () => {
+test.describe('Desktop Interaction', () => {
 	let server;
 
 	test.afterEach(async () => {
@@ -375,6 +375,30 @@ test.describe('Navigate through the UI using keyboard', () => {
 		await page.getByRole('button', {name: 'cute'}).focus();
 		await page.keyboard.press('ArrowRight');
 		await expect(page.getByRole('button', {name: 'to read'})).toBeFocused();
+	});
+
+	test('Scrolling collection tree closes open dot menu dropdown', async ({ page, serverPort }) => {
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
+
+		// Navigate to "AI" and open its dot menu via keyboard (the "More" button
+		// is only visible on hover/:focus-within)
+		await page.keyboard.press('Tab');
+		await expect(page.getByRole('treeitem', { name: 'My Library' })).toBeFocused();
+		await page.keyboard.press('ArrowDown');
+		await expect(page.getByRole('treeitem', { name: 'AI' })).toBeFocused();
+		await page.keyboard.press('ArrowRight');
+		await expect(page.getByTitle('More').first()).toBeFocused();
+		await page.keyboard.press('Enter');
+
+		const renameItem = page.getByRole('menuitem', { name: 'Rename' });
+		await expect(renameItem).toBeVisible();
+
+		// Scroll the collection tree -- should close the dropdown
+		await page.evaluate(() => {
+			document.querySelector('nav.collection-tree').dispatchEvent(new Event('scroll'));
+		});
+
+		await expect(renameItem).not.toBeVisible();
 	});
 
 	test('Dropdown focuses first item on every opening in collection tree', async ({ page, serverPort }) => {

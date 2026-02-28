@@ -709,6 +709,36 @@ test.describe('Desktop Modal Focus Management', () => {
 		await expect(page.getByRole('treeitem', { name: 'AI' }).getByTitle('More')).toBeFocused();
 	});
 
+	test('Scrolling tag list closes open dot menu dropdown', async ({ page, serverPort }) => {
+		const handlers = [
+			makeCustomHandler('/api/users/1/tags', testUserManageTags, { totalResults: testUserManageTags.length }),
+		];
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page, handlers);
+
+		// Open tag manager modal
+		await page.getByRole('button', { name: 'Tag Selector Options' }).click();
+		await page.getByRole('menuitem', { name: 'Manage Tags' }).click();
+
+		const modal = page.getByRole('dialog', { name: 'Manage Tags' });
+		await expect(modal).toBeVisible();
+
+		const tagList = modal.getByRole('list', { name: 'Tags' });
+		const tagItem = tagList.getByRole('listitem', { name: 'to read' });
+		await expect(tagItem).toBeVisible();
+
+		// Open the dot menu for a tag
+		await tagItem.getByRole('button', { name: 'More' }).click();
+		const assignColor = page.getByRole('menuitem', { name: 'Assign Color' });
+		await expect(assignColor).toBeVisible();
+
+		// Scroll the tag list -- the capture-phase listener on .scroll-container should close the dropdown
+		await page.evaluate(() => {
+			document.querySelector('.manage-tags .tag-selector-list').dispatchEvent(new Event('scroll'));
+		});
+
+		await expect(assignColor).not.toBeVisible();
+	});
+
 	test('Focus returns to toggle button after closing Manage Tags modal', async ({ page, serverPort }) => {
 		const handlers = [
 			makeCustomHandler('/api/users/1/tags', testUserManageTags, { totalResults: testUserManageTags.length }),
