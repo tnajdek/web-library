@@ -1,5 +1,5 @@
 import {test, expect} from "../utils/playwright-fixtures.js";
-import {closeServer, generateTestItems, loadFixtureState, makeCustomHandler, makePaginatedHandler, makeTextHandler} from "../utils/fixed-state-server.js";
+import {closeServer, generateTestItems, generateTestTags, loadFixtureState, makeCustomHandler, makePaginatedHandler, makeTextHandler} from "../utils/fixed-state-server.js";
 import testUserManageTags from '../fixtures/response/test-user-manage-tags.json' assert { type: 'json' };
 import identifierSearchResults from '../fixtures/response/identifier-search-web-results.json' assert { type: 'json' };
 import itemsInCollectionAlgorithms from '../fixtures/response/test-user-get-items-in-collection-algorithms.json' assert { type: 'json' };
@@ -881,6 +881,77 @@ test.describe('Desktop Modal Focus Management', () => {
 		});
 
 		await expect(assignColor).not.toBeVisible();
+	});
+
+	test('PageDown/PageUp/Home/End navigate through many tags in Manage Tags modal', async ({ page, serverPort }) => {
+		const allTags = generateTestTags(200);
+		const handlers = [
+			makePaginatedHandler('/api/users/1/tags', allTags),
+		];
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page, handlers);
+
+		// Open tag manager modal
+		await page.getByRole('button', { name: 'Tag Selector Options' }).click();
+		await page.getByRole('menuitem', { name: 'Manage Tags' }).click();
+
+		const modal = page.getByRole('dialog', { name: 'Manage Tags' });
+		await expect(modal).toBeVisible();
+
+		// Wait for tags to load in the list
+		const tagList = modal.getByRole('list', { name: 'Tags' });
+		await expect(tagList.locator('li.tag').first()).toBeVisible();
+
+		// Tab into the tag list so the first tag gets focus
+		await modal.getByRole('searchbox', { name: 'Filter Tags' }).focus();
+		await page.keyboard.press('Tab');
+		expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('LI');
+
+		// Press End -- should scroll to and focus the last tag (index 199)
+		await page.keyboard.press('End');
+		await page.waitForFunction(
+			() => document.activeElement?.dataset?.index === '199',
+			{ timeout: 10000 }
+		);
+		expect(await page.evaluate(() => document.activeElement?.dataset?.index)).toBe('199');
+
+		// Press Home -- should scroll back to and focus the first tag (index 0)
+		await page.keyboard.press('Home');
+		await page.waitForFunction(
+			() => document.activeElement?.dataset?.index === '0',
+			{ timeout: 10000 }
+		);
+		expect(await page.evaluate(() => document.activeElement?.dataset?.index)).toBe('0');
+
+		// Press PageDown -- should jump forward by approximately one viewport page
+		await page.keyboard.press('PageDown');
+		await page.waitForFunction(
+			() => {
+				const idx = parseInt(document.activeElement?.dataset?.index);
+				return !isNaN(idx) && idx > 0;
+			},
+			{ timeout: 5000 }
+		);
+		const indexAfterPageDown = await page.evaluate(() => parseInt(document.activeElement?.dataset?.index));
+		expect(indexAfterPageDown).toBeGreaterThan(0);
+
+		// Press PageUp -- should jump back toward the beginning
+		await page.keyboard.press('PageUp');
+		await page.waitForFunction(
+			(prev) => {
+				const idx = parseInt(document.activeElement?.dataset?.index);
+				return !isNaN(idx) && idx < prev;
+			},
+			indexAfterPageDown,
+			{ timeout: 5000 }
+		);
+		const indexAfterPageUp = await page.evaluate(() => parseInt(document.activeElement?.dataset?.index));
+		expect(indexAfterPageUp).toBeLessThan(indexAfterPageDown);
+
+		// Focus should remain within the modal throughout
+		expect(await page.evaluate(() => {
+			const modal = document.querySelector('[role="dialog"][aria-label="Manage Tags"]');
+			return modal?.contains(document.activeElement);
+		})).toBe(true);
 	});
 
 	test('Focus returns to toggle button after closing Manage Tags modal', async ({ page, serverPort }) => {

@@ -1,23 +1,23 @@
-import { AutoSizer } from 'react-virtualized-auto-sizer';
+import {AutoSizer} from 'react-virtualized-auto-sizer';
 import cx from 'classnames';
 import PropTypes from 'prop-types';
-import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useRef, useState, memo, } from 'react';
-import { useDebounce } from "use-debounce";
-import { useDispatch, useSelector } from 'react-redux';
-import { Button, Dropdown, DropdownToggle, DropdownMenu, DropdownItem, Icon, Spinner } from 'web-common/components';
-import { useFocusManager, usePrevious } from 'web-common/hooks';
-import { isTriggerEvent, noop, omit, pick } from 'web-common/utils';
-import { useInfiniteLoader } from "react-window-infinite-loader";
+import {forwardRef, memo, useCallback, useEffect, useId, useImperativeHandle, useRef, useState,} from 'react';
+import {useDebounce} from "use-debounce";
+import {useDispatch, useSelector} from 'react-redux';
+import {Button, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Icon, Spinner} from 'web-common/components';
+import {useFocusManager, usePrevious} from 'web-common/hooks';
+import {isTriggerEvent, noop, omit, pick} from 'web-common/utils';
+import {useInfiniteLoader} from "react-window-infinite-loader";
 
-import { checkColoredTags, fetchTags, navigate, removeColorAndDeleteTag, removeTagColor } from '../../actions';
-import { maxColoredTags } from '../../constants/constants';
-import { useTags } from '../../hooks';
-import { makeRequestsUpTo } from '../../utils';
+import {checkColoredTags, fetchTags, navigate, removeColorAndDeleteTag, removeTagColor} from '../../actions';
+import {maxColoredTags} from '../../constants/constants';
+import {useTags} from '../../hooks';
+import {makeRequestsUpTo} from '../../utils';
 import ReactWindowList from '../common/react-window-list';
 
 const PAGESIZE = 100;
 
-const TagDotMenu = memo(({ onDotMenuToggle, onToggleTagManager, hasColor, isDotMenuOpen, tagName }) => {
+const TagDotMenu = memo(({onDotMenuToggle, onToggleTagManager, hasColor, isDotMenuOpen, tagName}) => {
 	const dispatch = useDispatch()
 	const tagColorsLength = useSelector(state => state.libraries?.[state.current.libraryKey]?.tagColors?.value?.length ?? 0);
 	const currentlySelectedTags = useSelector(state => state.current.tags);
@@ -32,44 +32,44 @@ const TagDotMenu = memo(({ onDotMenuToggle, onToggleTagManager, hasColor, isDotM
 
 	const handleDeleteTagClick = useCallback(() => {
 		dispatch(removeColorAndDeleteTag(tagName));
-		if(tagName && currentlySelectedTags.includes(tagName)) {
-			dispatch(navigate({ tags: currentlySelectedTags.filter(t => t !== tagName) }));
+		if (tagName && currentlySelectedTags.includes(tagName)) {
+			dispatch(navigate({tags: currentlySelectedTags.filter(t => t !== tagName)}));
 		}
 	}, [currentlySelectedTags, dispatch, tagName]);
 
 	return (
 		<Dropdown
-			isOpen={ isDotMenuOpen }
-			onToggle={ onDotMenuToggle }
+			isOpen={isDotMenuOpen}
+			onToggle={onDotMenuToggle}
 			placement="bottom-end"
-			portal={ true }
+			portal={true}
 			strategy="fixed"
 		>
 			<DropdownToggle
-				tabIndex={ -3 }
+				tabIndex={-3}
 				className="btn-icon dropdown-toggle"
 				title="More"
-				onClick={ onDotMenuToggle }
+				onClick={onDotMenuToggle}
 			>
-				<Icon type={ '24/options-sm' } width="24" height="24" className="touch" />
-				<Icon type={ '16/options' } width="16" height="16" className="mouse" />
+				<Icon type={'24/options-sm'} width="24" height="24" className="touch"/>
+				<Icon type={'16/options'} width="16" height="16" className="mouse"/>
 			</DropdownToggle>
 			<DropdownMenu>
 				<DropdownItem
-					disabled={ !hasColor && tagColorsLength >= maxColoredTags }
-					onClick={ handleAssignColorClick }
+					disabled={!hasColor && tagColorsLength >= maxColoredTags}
+					onClick={handleAssignColorClick}
 				>
 					Assign Color
 				</DropdownItem>
-				{ hasColor && (
+				{hasColor && (
 					<DropdownItem
-						onClick={ handleRemoveColorClick }
+						onClick={handleRemoveColorClick}
 					>
 						Remove Color
 					</DropdownItem>
-				) }
+				)}
 				<DropdownItem
-					onClick={ handleDeleteTagClick }
+					onClick={handleDeleteTagClick}
 				>
 					Delete Tag
 				</DropdownItem>
@@ -89,22 +89,26 @@ TagDotMenu.propTypes = {
 TagDotMenu.displayName = 'TagDotMenu';
 
 const TagListItem = memo(props => {
-	const { className, dotMenuFor, onFocusNext, onFocusPrev, isManager, isSelected = false,
-		onDotMenuToggle = noop, style, tag, toggleTag, index, ...rest } = props;
+	const {
+		className, dotMenuFor, onFocusJump, onFocusNext, onFocusPrev, isManager, isSelected = false,
+		onDotMenuToggle = noop, style, tag, toggleTag, index, ...rest
+	} = props;
 	const isTouchOrSmall = useSelector(state => state.device.isTouchOrSmall);
 	const itemRef = useRef(null);
-	const { receiveFocus, receiveBlur, focusNext, focusPrev } = useFocusManager(itemRef, { isFocusable: true, targetTabIndex: -3 });
+	const {receiveFocus, receiveBlur, focusNext, focusPrev} = useFocusManager(itemRef, {
+		isFocusable: true, targetTabIndex: -3
+	});
 	const id = useId();
 
 	const handleClick = useCallback(ev => {
-		if(ev.type === 'click' && !isSelected) { // selected tags can only be removed by clicking on a 'minus' icon
+		if (ev.type === 'click' && !isSelected) { // selected tags can only be removed by clicking on a 'minus' icon
 			ev.currentTarget.blur();
 			toggleTag(ev.currentTarget.dataset.tag);
 		}
 	}, [isSelected, toggleTag]);
 
 	const handleUnselect = useCallback(ev => {
-		if(isTriggerEvent(ev)) {
+		if (isTriggerEvent(ev)) {
 			ev.stopPropagation();
 			ev.currentTarget.blur();
 			toggleTag(ev.currentTarget.closest('[data-tag]').dataset.tag);
@@ -112,74 +116,77 @@ const TagListItem = memo(props => {
 	}, [toggleTag]);
 
 	const handleKeyDown = useCallback(ev => {
-		if(ev.key === 'ArrowDown' && ev.target === ev.currentTarget) {
+		if (ev.key === 'ArrowDown' && ev.target === ev.currentTarget) {
 			onFocusNext(ev);
 			onDotMenuToggle(null);
-		} else if(ev.key === 'ArrowUp' && ev.target === ev.currentTarget) {
+		} else if (ev.key === 'ArrowUp' && ev.target === ev.currentTarget) {
 			onFocusPrev(ev);
 			onDotMenuToggle(null);
-		} else if(ev.key === 'ArrowRight') {
+		} else if ((ev.key === 'PageDown' || ev.key === 'PageUp' || ev.key === 'Home' || ev.key === 'End') && ev.target === ev.currentTarget) {
+			onFocusJump(ev, index, ev.key);
+		} else if (ev.key === 'ArrowRight') {
 			focusNext(ev);
-		} else if(ev.key === 'ArrowLeft') {
+		} else if (ev.key === 'ArrowLeft') {
 			focusPrev(ev);
 			onDotMenuToggle(null);
-		} else if(isTriggerEvent(ev)) {
+		} else if (isTriggerEvent(ev)) {
 			ev.currentTarget.blur();
 			toggleTag(ev.currentTarget.dataset.tag);
 		}
-	}, [focusNext, focusPrev, onDotMenuToggle, onFocusNext, onFocusPrev, toggleTag]);
+	}, [focusNext, focusPrev, index, onDotMenuToggle, onFocusJump, onFocusNext, onFocusPrev, toggleTag]);
 
 	return (
 		<li
-			data-index={ index }
-			aria-labelledby={ id }
-			tabIndex={ tag ? -2 : null }
-			data-tag={ tag ? tag.tag : null }
-			style={ style }
-			className={ cx({
+			data-index={index}
+			aria-labelledby={id}
+			tabIndex={-2}
+			data-tag={tag ? tag.tag : null}
+			style={style}
+			className={cx({
 				tag: true,
 				placeholder: !tag,
-			}, className) }
-			onClick={ tag && handleClick }
-			onKeyDown={ handleKeyDown }
-			ref={ itemRef }
-			onFocus={ receiveFocus }
-			onBlur={ receiveBlur }
+			}, className)}
+			onClick={tag && handleClick}
+			onKeyDown={handleKeyDown}
+			ref={itemRef}
+			onFocus={receiveFocus}
+			onBlur={receiveBlur}
 		>
-			<div className="tag-color" data-color={ tag?.color?.toLowerCase() } style={ tag && (tag.color && { color: tag.color }) } />
+			<div className="tag-color" data-color={tag?.color?.toLowerCase()}
+				 style={tag && (tag.color && {color: tag.color})}/>
 			<div
-				id={ id }
+				id={id}
 				className="truncate"
 			>
-				{ tag && tag.tag }
+				{tag && tag.tag}
 			</div>
-			{ isManager && tag && <TagDotMenu
-				tagName={ tag.tag }
-				hasColor={ !!tag.color }
-				isDotMenuOpen={ tag.tag === dotMenuFor }
-				onDotMenuToggle={ onDotMenuToggle }
-				{ ...pick(rest,  ['onToggleTagManager']) }
-			/> }
-			{ isSelected && (
+			{isManager && tag && <TagDotMenu
+				tagName={tag.tag}
+				hasColor={!!tag.color}
+				isDotMenuOpen={tag.tag === dotMenuFor}
+				onDotMenuToggle={onDotMenuToggle}
+				{...pick(rest, ['onToggleTagManager'])}
+			/>}
+			{isSelected && (
 				isTouchOrSmall ? (
-				<Button
-					className="btn-circle btn-secondary"
-					onClick={ handleUnselect }
-					onKeyDown={ handleUnselect }
-				>
-					<Icon type="16/minus-strong" width="16" height="16" />
-				</Button>
-			) : (
-				<Button
-					title="Delete Attachment"
-					icon
-					onClick={ handleUnselect }
-					onKeyDown={ handleUnselect }
-					tabIndex={ -3 }
-				>
-					<Icon type={ '16/minus-circle' } width="16" height="16" />
-				</Button>
-			)) }
+					<Button
+						className="btn-circle btn-secondary"
+						onClick={handleUnselect}
+						onKeyDown={handleUnselect}
+					>
+						<Icon type="16/minus-strong" width="16" height="16"/>
+					</Button>
+				) : (
+					<Button
+						title="Delete Attachment"
+						icon
+						onClick={handleUnselect}
+						onKeyDown={handleUnselect}
+						tabIndex={-3}
+					>
+						<Icon type={'16/minus-circle'} width="16" height="16"/>
+					</Button>
+				))}
 		</li>
 	);
 });
@@ -193,6 +200,7 @@ TagListItem.propTypes = {
 	isManager: PropTypes.bool,
 	isSelected: PropTypes.bool,
 	onDotMenuToggle: PropTypes.func,
+	onFocusJump: PropTypes.func,
 	onFocusNext: PropTypes.func,
 	onFocusPrev: PropTypes.func,
 	style: PropTypes.object,
@@ -200,13 +208,13 @@ TagListItem.propTypes = {
 	toggleTag: PropTypes.func,
 };
 
-const TagListRow = memo(({ index, tags, ...rest }) => (
+const TagListRow = memo(({index, tags, ...rest}) => (
 	<TagListItem
-		index={ index }
-		tag={ tags?.[index] }
-		className={ cx({ odd: (index + 1) % 2 === 1 }) }
-		{ ...omit(tags, ['tags', 'index']) }
-		{ ...rest }
+		index={index}
+		tag={tags?.[index]}
+		className={cx({odd: (index + 1) % 2 === 1})}
+		{...omit(tags, ['tags', 'index'])}
+		{...rest}
 	/>
 ));
 
@@ -218,12 +226,14 @@ TagListRow.propTypes = {
 };
 
 // TagList is used in the ManageTags modal and in TouchTagSelector
-const TagList = forwardRef(({ toggleTag = noop, isManager = false, ...rest }, ref) => {
+const TagList = forwardRef(({toggleTag = noop, isManager = false, ...rest}, ref) => {
 	const dispatch = useDispatch();
 	const loader = useRef(null);
 
-	const { duplicatesCount, hasMoreItems, isFetchingColoredTags, isFetching, pointer,
-		requests, tags, totalResults, selectedTags, hasChecked, hasCheckedColoredTags } = useTags(!isManager);
+	const {
+		duplicatesCount, hasMoreItems, isFetchingColoredTags, isFetching, pointer,
+		requests, tags, totalResults, selectedTags, hasChecked, hasCheckedColoredTags
+	} = useTags(!isManager);
 
 	const listRef = useRef(null);
 	const requestedPointer = useRef([]);
@@ -235,21 +245,90 @@ const TagList = forwardRef(({ toggleTag = noop, isManager = false, ...rest }, re
 	const wasFilteringOrHideAutomatic = usePrevious(isFilteringOrHideAutomatic);
 	const selectedTagsCount = selectedTags.length;
 	const prevHasChecked = usePrevious(hasChecked);
-	const { receiveFocus, receiveBlur, focusNext, focusPrev } = useFocusManager(listRef);
+	const {receiveFocus, receiveBlur, focusBySelector, focusNext, focusPrev} = useFocusManager(listRef);
 	const [isBusy] = useDebounce(!hasChecked || (isFetching && isFilteringOrHideAutomatic), 100);
 
 	const [dotMenuFor, setDotMenuFor] = useState(null);
 	const scrollContainerRef = useRef(null);
+	const pendingFocusRef = useRef(null);
+	const itemCountRef = useRef(0);
+
+	useEffect(() => {
+		return () => {
+			if (pendingFocusRef.current) {
+				cancelAnimationFrame(pendingFocusRef.current);
+			}
+		};
+	}, []);
+
+	const focusRow = useCallback((index) => {
+		if (pendingFocusRef.current) {
+			cancelAnimationFrame(pendingFocusRef.current);
+			pendingFocusRef.current = null;
+		}
+
+		const selector = `[data-index="${index}"]`;
+		if (listRef.current?.querySelector(selector)) {
+			focusBySelector(selector);
+		} else {
+			// Target row isn't in the DOM yet -- react-window hasn't rendered it.
+			// Park focus on the list container to prevent focus loss when the old
+			// row unmounts, then retry until the target row appears.
+			listRef.current?.focus();
+			let retries = 0;
+			const tryFocus = () => {
+				if (listRef.current?.querySelector(selector)) {
+					focusBySelector(selector);
+					pendingFocusRef.current = null;
+				} else if (retries < 10) {
+					retries++;
+					pendingFocusRef.current = requestAnimationFrame(tryFocus);
+				} else {
+					pendingFocusRef.current = null;
+				}
+			};
+			pendingFocusRef.current = requestAnimationFrame(tryFocus);
+		}
+	}, [focusBySelector]);
+
+	const handleFocusJump = useCallback((ev, currentIndex, key) => {
+		if (itemCountRef.current <= 0) {
+			return;
+		}
+
+		const rowHeight = isTouchOrSmall ? 43 : 28;
+		const containerHeight = rwListRef.current?.element?.getBoundingClientRect()?.height ?? 0;
+		const pageSize = Math.max(1, Math.floor(containerHeight / rowHeight));
+
+		let targetIndex;
+		if (key === 'Home') {
+			targetIndex = 0;
+		} else if (key === 'End') {
+			targetIndex = itemCountRef.current - 1;
+		} else if (key === 'PageDown') {
+			targetIndex = Math.min(currentIndex + pageSize, itemCountRef.current - 1);
+		} else if (key === 'PageUp') {
+			targetIndex = Math.max(currentIndex - pageSize, 0);
+		}
+
+		ev.preventDefault();
+		setDotMenuFor(null);
+		rwListRef.current?.scrollToRow?.({index: targetIndex, align: 'smart'});
+		focusRow(targetIndex);
+	}, [focusRow, isTouchOrSmall]);
 
 	useImperativeHandle(ref, () => ({
 		focus: () => {
-			if(listRef.current) {
+			if (listRef.current) {
 				listRef.current.focus();
 			}
 		}
 	}));
 
+	const rwListRef = useRef(null);
+
 	const handleRWListRef = useCallback(r => {
+		rwListRef.current = r;
 		// The overflow list is made focusable by default in most browsers, and to prevent this, we
 		// need to set `tabIndex` to -1. However, since this element is rendered by react-window, we
 		// cannot pass it as a prop. As a workaround, we set the tabIndex attribute directly here.
@@ -257,7 +336,7 @@ const TagList = forwardRef(({ toggleTag = noop, isManager = false, ...rest }, re
 	}, []);
 
 	const handleIsItemLoaded = useCallback(index => {
-		if(tags && !!tags[index]) {
+		if (tags && !!tags[index]) {
 			return true; // loaded
 		}
 		return requests.some(r => index >= r[0] && index < r[1]); // loading
@@ -283,6 +362,7 @@ const TagList = forwardRef(({ toggleTag = noop, isManager = false, ...rest }, re
 	}, [dispatch, duplicatesCount, pointer]);
 
 	let itemCount = isFilteringOrHideAutomatic ? tags.length : hasChecked ? totalResults - duplicatesCount - selectedTagsCount : 0;
+	itemCountRef.current = itemCount;
 	let previousItemCount = usePrevious(itemCount);
 
 	const onRowsRendered = useInfiniteLoader({
@@ -292,7 +372,7 @@ const TagList = forwardRef(({ toggleTag = noop, isManager = false, ...rest }, re
 	});
 
 	const handleDotMenuToggle = useCallback(ev => {
-		if(ev === null) {
+		if (ev === null) {
 			setDotMenuFor(null);
 			return;
 		}
@@ -302,13 +382,13 @@ const TagList = forwardRef(({ toggleTag = noop, isManager = false, ...rest }, re
 	}, [dotMenuFor]);
 
 	useEffect(() => {
-		if(hasChecked || isFetching) {
+		if (hasChecked || isFetching) {
 			return;
 		}
 
 		// runs on first mount (prevHasChecked is undefined) and whenever `hasChecked` becomes false
 		// usually because tags have been discarded after edit or source has changed
-		if(!hasChecked && (prevHasChecked === true || typeof(prevHasChecked) === 'undefined')) {
+		if (!hasChecked && (prevHasChecked === true || typeof (prevHasChecked) === 'undefined')) {
 			dispatch(fetchTags(0, PAGESIZE - 1));
 			requestedPointer.current = [];
 		}
@@ -317,13 +397,13 @@ const TagList = forwardRef(({ toggleTag = noop, isManager = false, ...rest }, re
 	useEffect(() => {
 		// if we're filtering, we need to prefetch all matching tags under spinner
 		// this is because filtering happens locally and we don't know the number of total results
-		if (hasMoreItems && (isFilteringOrHideAutomatic && !wasFilteringOrHideAutomatic))  {
+		if (hasMoreItems && (isFilteringOrHideAutomatic && !wasFilteringOrHideAutomatic)) {
 			Promise.all(makeRequestsUpTo(pointer, totalResults, PAGESIZE).map(r => dispatch(fetchTags(r.start, r.stop))));
 		}
 	}, [dispatch, hasMoreItems, isFilteringOrHideAutomatic, pointer, totalResults, wasFilteringOrHideAutomatic]);
 
 	useEffect(() => {
-		if(!hasCheckedColoredTags && !isFetchingColoredTags) {
+		if (!hasCheckedColoredTags && !isFetchingColoredTags) {
 			dispatch(checkColoredTags());
 		}
 	}, [dispatch, hasCheckedColoredTags, isFetchingColoredTags]);
@@ -348,47 +428,51 @@ const TagList = forwardRef(({ toggleTag = noop, isManager = false, ...rest }, re
 			return;
 		}
 		const handleScroll = () => setDotMenuFor(null);
-		scrollContainer.addEventListener('scroll', handleScroll, { passive: true, capture: true });
-		return () => scrollContainer.removeEventListener('scroll', handleScroll, { capture: true });
+		scrollContainer.addEventListener('scroll', handleScroll, {passive: true, capture: true});
+		return () => scrollContainer.removeEventListener('scroll', handleScroll, {capture: true});
 	}, [dotMenuFor]);
 
 	return (
-		<div className="scroll-container" ref={ scrollContainerRef }>
-			{ !isBusy ? (
-				<AutoSizer renderProp={ ({ height, width }) => {
-					if(typeof width === 'undefined' || typeof height === 'undefined') {
+		<div className="scroll-container" ref={scrollContainerRef}>
+			{!isBusy ? (
+				<AutoSizer renderProp={({height, width}) => {
+					if (typeof width === 'undefined' || typeof height === 'undefined') {
 						return null;
 					}
 					return (
 						<div
-							tabIndex={ tags.length > 0 ? 0 : null }
-							onFocus={ tags.length > 0 ? receiveFocus : noop }
-							onBlur={ tags.length > 0 ? receiveBlur : noop }
-							ref={ listRef }
+							tabIndex={tags.length > 0 ? 0 : null}
+							onFocus={tags.length > 0 ? receiveFocus : noop}
+							onBlur={tags.length > 0 ? receiveBlur : noop}
+							ref={listRef}
 							role="list"
 							aria-multiselectable="true"
 							aria-readonly="true"
 							aria-label="Tags"
-							aria-rowcount={ totalResults }
+							aria-rowcount={totalResults}
 						>
 							<ReactWindowList
 								rowComponent={TagListRow}
 								className="tag-selector-list"
-								rowCount={ itemCount }
-								rowProps={ { tags, toggleTag, isManager, onFocusNext: focusNext, onFocusPrev: focusPrev,
-									dotMenuFor, onDotMenuToggle: handleDotMenuToggle, ...pick(rest, ['onToggleTagManager']) }
+								rowCount={itemCount}
+								rowProps={{
+									tags, toggleTag, isManager, onFocusJump: handleFocusJump,
+									onFocusNext: focusNext, onFocusPrev: focusPrev,
+									dotMenuFor,
+									onDotMenuToggle: handleDotMenuToggle, ...pick(rest, ['onToggleTagManager'])
 								}
-								rowHeight={ isTouchOrSmall ? 43 : 28 }
+								}
+								rowHeight={isTouchOrSmall ? 43 : 28}
 								onRowsRendered={onRowsRendered}
-								listRef={ handleRWListRef }
-								style={{ width, height }}
+								listRef={handleRWListRef}
+								style={{width, height}}
 							/>
 						</div>
 					)
-				}} />
+				}}/>
 			) : (
-				<Spinner className="large centered" />
-			) }
+				<Spinner className="large centered"/>
+			)}
 		</div>
 	);
 });
@@ -401,4 +485,4 @@ TagList.propTypes = {
 }
 
 export default memo(TagList);
-export { TagListItem };
+export {TagListItem};

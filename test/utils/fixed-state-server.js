@@ -187,6 +187,22 @@ export function generateTestItems(count, { keyPrefix = 'TEST', titlePrefix = 'Te
 	});
 }
 
+// Generate mock Zotero tag API response objects for testing. Useful for creating
+// large tag sets that exercise pagination and virtualized scrolling in TagList.
+export function generateTestTags(count, { prefix = 'Tag' } = {}) {
+	return Array.from({ length: count }, (_, i) => {
+		const name = `${prefix} ${String(i).padStart(3, '0')}`;
+		return {
+			tag: name,
+			links: {
+				self: { href: `https://api.zotero.org/users/1/tags/${encodeURIComponent(name)}`, type: 'application/json' },
+				alternate: { href: `https://www.zotero.org/testuser/tags/${encodeURIComponent(name)}`, type: 'text/html' },
+			},
+			meta: { type: 0, numItems: 1 },
+		};
+	});
+}
+
 // Create a handler that respects start/limit query parameters, producing a
 // sparse array on the client when the initial fetch does not cover all items.
 export function makePaginatedHandler(urlPath, allItems) {
