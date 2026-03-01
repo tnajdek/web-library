@@ -1440,7 +1440,13 @@ const addRelatedItems = (itemKey, relatedItemKeys) => {
 			{ key: itemKey, relations: newRelations },
 		];
 
-		return await dispatch(updateMultipleItems(multiItemPatch, libraryKey));
+		const chunkSize = 50;
+		const results = [];
+		for (let i = 0; i < multiItemPatch.length; i += chunkSize) {
+			const chunk = multiItemPatch.slice(i, i + chunkSize);
+			results.push(await dispatch(updateMultipleItems(chunk, libraryKey)));
+		}
+		return results;
 	};
 }
 

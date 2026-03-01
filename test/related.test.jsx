@@ -10,7 +10,9 @@ import userEvent from '@testing-library/user-event'
 
 import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
+import { setupStore } from '../src/js/store';
 import { MainZotero } from '../src/js/component/main';
+import { addRelatedItems } from '../src/js/actions/items-write';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
 import stateRaw from './fixtures/state/desktop-test-user-item-view.json';
 import getRelatedItemsResponse from './fixtures/response/test-user-get-item-by-key-66LW9WRP-PEZF7SPI.json';
@@ -105,4 +107,114 @@ describe('Item info', () => {
 		expect(hasBeenPosted).toBe(true);
 	});
 
+});
+
+describe('addRelatedItems chunking', () => {
+	const handlers = [];
+	const server = setupServer(...handlers);
+
+	beforeAll(() => {
+		server.listen({
+			onUnhandledRequest: (req) => {
+				test(`${req.method} ${req.url} is not handled`, () => { });
+			},
+		});
+	});
+
+	afterEach(() => server.resetHandlers());
+	afterAll(() => server.close());
+
+	test('Chunks POST requests when adding more than 50 related items', async () => {
+		const itemCount = 55;
+		const relatedItemKeys = [];
+		const extraItems = {};
+
+		// -- Create 55 dummy related items in state
+		for (let i = 0; i < itemCount; i++) {
+			const key = `RLTD${String(i).padStart(4, '0')}`;
+			relatedItemKeys.push(key);
+			extraItems[key] = {
+				key,
+				version: 1,
+				itemType: 'journalArticle',
+				title: `Related item ${i}`,
+				collections: [],
+				relations: {},
+			};
+		}
+
+		const testState = JSONtoState(stateRaw);
+		Object.assign(testState.libraries.u1.items, extraItems);
+
+		const postRequests = [];
+		let version = testState.libraries.u1.sync.version;
+
+		server.use(
+			// -- Handle fetchItemsByKeys GET requests
+			http.get('https://api.zotero.org/users/1/items', ({ request }) => {
+				const url = new URL(request.url);
+				const keys = url.searchParams.get('itemKey').split(',');
+				const responseItems = keys.map(key => ({
+					key,
+					version: 1,
+					library: { type: 'user', id: 1, name: 'testuser', links: {} },
+					links: {},
+					meta: {},
+					data: {
+						key,
+						version: 1,
+						itemType: 'journalArticle',
+						title: `Related item ${key}`,
+						collections: [],
+						relations: {},
+					},
+				}));
+
+				return HttpResponse.json(responseItems, {
+					headers: { 'Total-Results': String(keys.length) }
+				});
+			}),
+
+			// -- Handle updateMultipleItems POST requests
+			http.post('https://api.zotero.org/users/1/items', async ({ request }) => {
+				const items = await request.json();
+				postRequests.push(items);
+
+				const successful = {};
+				const success = {};
+				items.forEach((item, index) => {
+					const idx = String(index);
+					success[idx] = item.key;
+					successful[idx] = {
+						key: item.key,
+						version: ++version,
+						library: { type: 'user', id: 1, name: 'testuser', links: {} },
+						links: {},
+						meta: {},
+						data: {
+							key: item.key,
+							version,
+							itemType: 'journalArticle',
+							title: `Item ${item.key}`,
+							collections: [],
+							relations: item.relations || {},
+						},
+					};
+				});
+
+				return HttpResponse.json(
+					{ successful, success, unchanged: {}, failed: {} },
+					{ headers: { 'Last-Modified-Version': String(version) } }
+				);
+			}),
+		);
+
+		const store = setupStore(testState);
+		await store.dispatch(addRelatedItems('VR82JUX8', relatedItemKeys));
+
+		// -- 56 total patches (55 related + 1 source) should be split into 2 requests
+		expect(postRequests).toHaveLength(2);
+		expect(postRequests[0]).toHaveLength(50);
+		expect(postRequests[1]).toHaveLength(6);
+	});
 });
