@@ -243,8 +243,7 @@ const TagPicker = ({ itemKey, libraryKey, isReadOnly }) => {
 				setTagRedacted(ev.target.dataset.tag);
 			}
 		} else if (ev.key === 'Home') {
-			resetLastFocused();
-			addTagRef.current.focus();
+			focusBySelector('.tag:first-child');
 			ev.preventDefault();
 		} else if (ev.key === 'End') {
 			focusBySelector('.tag:last-child');

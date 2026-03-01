@@ -128,7 +128,7 @@ const Related = ({ id, isActive, isReadOnly, ...rest }) => {
 		} else if(ev.key === 'ArrowUp') {
 			ev.target === ev.currentTarget && focusPrev(ev);
 		} else if(ev.key === 'Home' && scrollContainerRef.current) {
-			addRelatedRef.current.focus();
+			focusPrev(ev, { offset: Infinity });
 			ev.preventDefault();
 		} else if(ev.key === 'End' && scrollContainerRef.current) {
 			focusNext(ev, { offset: Infinity });

@@ -284,7 +284,7 @@ const Notes = ({ id, isActive, isReadOnly, ...rest }) => {
 		} else if(ev.key === 'ArrowUp') {
 			ev.target === ev.currentTarget && focusPrev(ev, { targetEnd: addNoteRef.current });
 		} else if(ev.key === 'Home') {
-			addNoteRef.current.focus();
+			focusBySelector('.note:first-child');
 			ev.preventDefault();
 		} else if(ev.key === 'End') {
 			focusBySelector('.note:last-child');

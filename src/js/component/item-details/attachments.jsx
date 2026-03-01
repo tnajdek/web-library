@@ -495,7 +495,7 @@ const Attachments = ({ id, isActive, isReadOnly, ...rest }) => {
 		} else if (ev.key === 'ArrowUp') {
 			ev.target === ev.currentTarget && focusPrev(ev, { targetEnd: fileInput.current || addLinkedUrlButtonRef.current });
 		} else if (ev.key === 'Home') {
-			fileInput.current.focus();
+			focusBySelector('.attachment:first-child');
 			ev.preventDefault();
 		} else if (ev.key === 'End') {
 			focusBySelector('.attachment:last-child');
