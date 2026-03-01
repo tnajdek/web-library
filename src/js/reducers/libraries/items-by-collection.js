@@ -45,7 +45,7 @@ const itemsByCollection = (state = {}, action, { items, meta }) => {
 			if(action.item.parentItem) { return state; }
 			return {
 				...state,
-				...(action.item.collections.reduce(
+				...((action.item.collections ?? []).reduce(
 					(aggr, collectionKey) => {
 						aggr[collectionKey] = injectExtraItemKeys(
 							meta.mappings,
@@ -164,7 +164,7 @@ const itemsByCollection = (state = {}, action, { items, meta }) => {
 				return state;
 			}
 			return mapObject(state, (colKey, itemKeysState) => {
-				if(action.item.collections.includes(colKey)) {
+				if((action.item.collections ?? []).includes(colKey)) {
 					itemKeysState = injectExtraItemKeys(
 						meta.mappings,
 						itemKeysState,
