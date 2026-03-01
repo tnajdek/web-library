@@ -1,8 +1,14 @@
 import {test, expect} from "../utils/playwright-fixtures.js";
-import {closeServer, loadFixtureState, makeCustomHandler, makeTextHandler} from "../utils/fixed-state-server.js";
+import {closeServer, generateTestItems, loadFixtureState, makeCustomHandler, makeTextHandler} from "../utils/fixed-state-server.js";
 import testUserRemoveItemFromCollection from '../fixtures/response/test-user-remove-item-from-collection.json' assert { type: 'json' };
 import testUserTrashItem from '../fixtures/response/test-user-trash-item.json' assert { type: 'json' };
 
+// Generate Zotero API items for the unfetched range (indices 61-82) in the
+// desktop-test-user-library-view fixture. These items are returned by the
+// custom handler when the virtual list scrolls into the sparse zone.
+function generateUnfetchedItems() {
+	return generateTestItems(22, { keyPrefix: 'UNFCH', titlePrefix: 'Unfetched Item', startIndex: 61 });
+}
 
 test.describe('Desktop Interaction', () => {
 	let server;
@@ -533,6 +539,182 @@ test.describe('Desktop Interaction', () => {
 		// Shift+Tab from the iframe should move focus back to the notes list
 		await page.keyboard.press('Shift+Tab');
 		await expect(noteItem).toBeFocused();
+	});
+
+	test('PageDown into unfetched items selects the target row once loaded', async ({ page, serverPort }) => {
+		const unfetchedItems = generateUnfetchedItems();
+		const handlers = [
+			makeCustomHandler('/api/users/1/items/top', unfetchedItems, { totalResults: 83 }),
+			// catch-all for any other API requests (e.g. tags, item details)
+			makeCustomHandler('/api/', [], { totalResults: 0 }),
+		];
+		server = await loadFixtureState('desktop-test-user-library-view', serverPort, page, handlers);
+
+		// Click on the first row to select it and give the table keyboard focus
+		await page.locator('[role="row"][data-index="0"]').click();
+		await expect(page.locator('[role="row"][data-index="0"]')).toHaveAttribute('aria-selected', 'true');
+
+		// Press PageDown repeatedly until the selected row is in the unfetched
+		// zone (indices > 60). Each press jumps ~18 rows (viewport height / row
+		// height), so ~4 presses from index 0 should reach the unfetched zone.
+		// A small delay between presses ensures React has finished re-rendering
+		// and the scroll container ref (outerRef) is set before the next press.
+		let selectedIndex = 0;
+		for (let i = 0; i < 8 && selectedIndex <= 60; i++) {
+			await page.keyboard.press('PageDown');
+			await page.waitForFunction(
+				(prev) => {
+					const sel = document.querySelector('.items-table [role="row"][aria-selected="true"]');
+					return sel && parseInt(sel.dataset.index) !== prev;
+				},
+				selectedIndex,
+			);
+			selectedIndex = await page.evaluate(() => {
+				const sel = document.querySelector('.items-table [role="row"][aria-selected="true"]');
+				return sel ? parseInt(sel.dataset.index) : -1;
+			});
+			await page.waitForTimeout(100);
+		}
+
+		// Verify the selected row is in the unfetched zone
+		expect(selectedIndex).toBeGreaterThan(60);
+
+		// Verify focus is within the items table
+		expect(await page.evaluate(() => {
+			const table = document.querySelector('.items-table');
+			return table?.contains(document.activeElement);
+		})).toBe(true);
+
+		// Arrow keys should navigate from the new position
+		await page.keyboard.press('ArrowUp');
+		const prevRow = page.locator(`.items-table [role="row"][data-index="${selectedIndex - 1}"]`);
+		await expect(prevRow).toHaveAttribute('aria-selected', 'true');
+	});
+
+	test('End key navigates to unfetched last item and selects it once loaded', async ({ page, serverPort }) => {
+		const unfetchedItems = generateUnfetchedItems();
+		const handlers = [
+			makeCustomHandler('/api/users/1/items/top', unfetchedItems, { totalResults: 83 }),
+			// catch-all for any other API requests
+			makeCustomHandler('/api/', [], { totalResults: 0 }),
+		];
+		server = await loadFixtureState('desktop-test-user-library-view', serverPort, page, handlers);
+
+		// Click on the first row to select it and give the table keyboard focus
+		const firstRow = page.locator('.items-table [role="row"][data-index="0"]');
+		await firstRow.click();
+		await expect(firstRow).toHaveAttribute('aria-selected', 'true');
+
+		// Press End to jump to the last item (index 82, which is unfetched)
+		await page.keyboard.press('End');
+
+		// Wait for the last row to become selected (pending selection effect
+		// dispatches navigation after the API response loads the item data)
+		const lastRow = page.locator('.items-table [role="row"][data-index="82"]');
+		await expect(lastRow).toHaveAttribute('aria-selected', 'true', { timeout: 10000 });
+
+		// Verify focus is within the items table
+		expect(await page.evaluate(() => {
+			const table = document.querySelector('.items-table');
+			return table?.contains(document.activeElement);
+		})).toBe(true);
+
+		// Arrow keys should navigate from the last item
+		await page.keyboard.press('ArrowUp');
+		const prevRow = page.locator('.items-table [role="row"][data-index="81"]');
+		await expect(prevRow).toHaveAttribute('aria-selected', 'true');
+	});
+
+	test('Shift+PageDown into unfetched items extends selection from anchor', async ({ page, serverPort }) => {
+		const unfetchedItems = generateUnfetchedItems();
+		const handlers = [
+			makeCustomHandler('/api/users/1/items/top', unfetchedItems, { totalResults: 83 }),
+			makeCustomHandler('/api/', [], { totalResults: 0 }),
+		];
+		server = await loadFixtureState('desktop-test-user-library-view', serverPort, page, handlers);
+
+		// Click on first row, then PageDown to navigate near the unfetched zone
+		await page.locator('[role="row"][data-index="0"]').click();
+		await expect(page.locator('[role="row"][data-index="0"]')).toHaveAttribute('aria-selected', 'true');
+
+		// Navigate to near the boundary (indices 0-60 are fetched, 61+ are not).
+		// Use PageDown (without shift) to get close to the boundary.
+		// A small delay between presses ensures outerRef is set after re-render.
+		let anchorIndex = 0;
+		for (let i = 0; i < 3; i++) {
+			await page.keyboard.press('PageDown');
+			await page.waitForFunction(
+				(prev) => {
+					const sel = document.querySelector('.items-table [role="row"][aria-selected="true"]');
+					return sel && parseInt(sel.dataset.index) !== prev;
+				},
+				anchorIndex,
+			);
+			anchorIndex = await page.evaluate(() => {
+				const sel = document.querySelector('.items-table [role="row"][aria-selected="true"]');
+				return sel ? parseInt(sel.dataset.index) : -1;
+			});
+			await page.waitForTimeout(100);
+		}
+
+		// Now Shift+PageDown to extend selection into the unfetched zone
+		await page.keyboard.press('Shift+PageDown');
+
+		// Wait for multiple rows to become selected (shift extends the range)
+		await page.waitForFunction(
+			() => {
+				const rows = document.querySelectorAll('.items-table [role="row"][aria-selected="true"]');
+				return rows.length > 1;
+			},
+			{ timeout: 10000 }
+		);
+
+		const selectedIndices = await page.evaluate(() => {
+			const rows = document.querySelectorAll('.items-table [role="row"][aria-selected="true"]');
+			return Array.from(rows).map(r => parseInt(r.dataset.index)).sort((a, b) => a - b);
+		});
+
+		// Selection should include the anchor and extend contiguously into the unfetched zone
+		expect(selectedIndices[0]).toBe(anchorIndex);
+		expect(selectedIndices[selectedIndices.length - 1]).toBeGreaterThan(60);
+		expect(selectedIndices.length).toBeGreaterThan(1);
+		// Verify the range is contiguous
+		for (let i = 1; i < selectedIndices.length; i++) {
+			expect(selectedIndices[i]).toBe(selectedIndices[i - 1] + 1);
+		}
+	});
+
+	test('Shift+End into unfetched items falls back to selecting last item when range has holes', async ({ page, serverPort }) => {
+		const unfetchedItems = generateUnfetchedItems();
+		const handlers = [
+			makeCustomHandler('/api/users/1/items/top', unfetchedItems, { totalResults: 83 }),
+			makeCustomHandler('/api/', [], { totalResults: 0 }),
+		];
+		server = await loadFixtureState('desktop-test-user-library-view', serverPort, page, handlers);
+
+		// Select the first row as anchor. Items 0-60 are pre-fetched, 61-82
+		// are not. The range 0-82 will have sparse holes, so the shift
+		// extension falls back to selecting only the target (last item).
+		await page.locator('[role="row"][data-index="0"]').click();
+		await expect(page.locator('[role="row"][data-index="0"]')).toHaveAttribute('aria-selected', 'true');
+
+		// Shift+End to attempt extending selection to the last item
+		await page.keyboard.press('Shift+End');
+
+		// The last row should become selected (via fallback single selection)
+		const lastRow = page.locator('.items-table [role="row"][data-index="82"]');
+		await expect(lastRow).toHaveAttribute('aria-selected', 'true', { timeout: 10000 });
+
+		// Verify focus is within the items table
+		expect(await page.evaluate(() => {
+			const table = document.querySelector('.items-table');
+			return table?.contains(document.activeElement);
+		})).toBe(true);
+
+		// Arrow keys should navigate from the last item
+		await page.keyboard.press('ArrowUp');
+		const prevRow = page.locator('.items-table [role="row"][data-index="81"]');
+		await expect(prevRow).toHaveAttribute('aria-selected', 'true');
 	});
 
 	test('Shift+Tab from standalone attachment note editor iframe should move focus back to download options', async ({ page, browserName, serverPort }) => {

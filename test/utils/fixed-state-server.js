@@ -154,3 +154,59 @@ export function makeTextHandler(url, textResponse) {
 		}
 	}
 }
+
+// Generate mock Zotero API items for testing. Useful for creating large item
+// sets that produce sparse arrays when served via makePaginatedHandler.
+export function generateTestItems(count, { keyPrefix = 'TEST', titlePrefix = 'Test Item', collections = [], startIndex = 0 } = {}) {
+	const padLength = Math.max(1, 8 - keyPrefix.length);
+	return Array.from({ length: count }, (_, i) => {
+		const index = startIndex + i;
+		const key = `${keyPrefix}${String(index).padStart(padLength, '0')}`;
+		return {
+			key,
+			version: 1000,
+			library: {
+				type: "user", id: 1, name: "testuser",
+				links: { alternate: { href: "https://www.zotero.org/testuser", type: "text/html" } }
+			},
+			links: {
+				self: { href: `https://api.zotero.org/users/1/items/${key}`, type: "application/json" },
+				alternate: { href: `https://www.zotero.org/testuser/items/${key}`, type: "text/html" }
+			},
+			meta: { creatorSummary: `Author ${index}`, parsedDate: "2024", numChildren: 0 },
+			data: {
+				key, version: 1000, itemType: "book",
+				title: `${titlePrefix} ${String(index).padStart(3, '0')}`,
+				creators: [{ creatorType: "author", firstName: "Test", lastName: `Author${index}` }],
+				abstractNote: "", date: "2024",
+				tags: [], collections, relations: {},
+				dateAdded: "2024-01-01T00:00:00Z",
+				dateModified: "2024-01-01T00:00:00Z"
+			}
+		};
+	});
+}
+
+// Create a handler that respects start/limit query parameters, producing a
+// sparse array on the client when the initial fetch does not cover all items.
+export function makePaginatedHandler(urlPath, allItems) {
+	return (req, resp) => {
+		const parsedUrl = new URL(req.url, 'http://localhost');
+		if (parsedUrl.pathname !== urlPath) {
+			return false;
+		}
+		setCommonHeaders(resp);
+		if (req.method === 'OPTIONS') {
+			resp.end();
+			return true;
+		}
+		const start = parseInt(parsedUrl.searchParams.get('start') || '0');
+		const limit = parseInt(parsedUrl.searchParams.get('limit') || '50');
+		const slice = allItems.slice(start, start + limit);
+		resp.setHeader('Content-Type', 'application/json');
+		resp.setHeader('Total-Results', String(allItems.length));
+		resp.setHeader('Last-Modified-Version', '1000000');
+		resp.end(JSON.stringify(slice));
+		return true;
+	};
+}

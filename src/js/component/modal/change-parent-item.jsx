@@ -162,7 +162,7 @@ const ChangeParentItemModal = () => {
 		if(isOpen) {
 			dispatch(querySecondary({ libraryKey, collectionKey, isTrash, isMyPublications, q, qmode, tag: tags }));
 		}
-	}, [dispatch, isOpen, navState]);
+	}, [dispatch, isOpen, navState.libraryKey, navState.collectionKey, navState.isTrash, navState.isMyPublications, navState.q, navState.qmode, navState.tags]);
 
 	useEffect(() => {
 		if(navState.libraryKey !== prevNavState?.libraryKey || navState.collectionKey !== prevNavState?.collectionKey) {

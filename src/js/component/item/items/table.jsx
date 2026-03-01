@@ -36,6 +36,8 @@ const ItemsTable = props => {
 	const listRef = useRef(null);
 	const outerRef = useRef(null);
 	const lastRequest = useRef({});
+	const pendingFocusRef = useRef(null);
+	const pendingSelectionRef = useRef(null);
 	const [isHoveringBetweenRows, setIsHoveringBetweenRows] = useState(false);
 	const {
 		injectPoints, isFetching, keys, hasChecked, totalResults, sortBy, sortDirection, requests
@@ -97,6 +99,41 @@ const ItemsTable = props => {
 
 	const dispatch = useDispatch();
 
+	const focusRow = useCallback((index) => {
+		if (pendingFocusRef.current) {
+			cancelAnimationFrame(pendingFocusRef.current);
+			pendingFocusRef.current = null;
+		}
+
+		if (index === -1) {
+			focusBySelector('.items-table-head');
+		} else if (index !== null) {
+			const selector = `[data-index="${index}"]`;
+			if (tableRef.current.querySelector(selector)) {
+				focusBySelector(selector);
+			} else {
+				// Target row isn't in the DOM yet -- react-window hasn't
+				// rendered it. Park focus on the table container to prevent
+				// focus loss when the old row unmounts, then retry until the
+				// target row appears.
+				tableRef.current.focus();
+				let retries = 0;
+				const tryFocus = () => {
+					if (tableRef.current?.querySelector(selector)) {
+						focusBySelector(selector);
+						pendingFocusRef.current = null;
+					} else if (retries < 10) {
+						retries++;
+						pendingFocusRef.current = requestAnimationFrame(tryFocus);
+					} else {
+						pendingFocusRef.current = null;
+					}
+				};
+				pendingFocusRef.current = requestAnimationFrame(tryFocus);
+			}
+		}
+	}, [focusBySelector]);
+
 	const [{ isOver, canDrop }, drop] = useDrop({
 		accept: [ATTACHMENT, NativeTypes.FILE],
 		canDrop: () => isFileUploadAllowed,
@@ -154,6 +191,8 @@ const ItemsTable = props => {
 	}, [dispatch]);
 
 	const handleKeyDown = useCallback(async ev => {
+		const prevPendingIndex = pendingSelectionRef.current?.index ?? undefined;
+		pendingSelectionRef.current = null;
 		var direction, magnitude = 1;
 		if (isEmbedded && isTriggerEvent(ev)) {
 			dispatch(navigate({ view: 'item-details' }));
@@ -168,16 +207,50 @@ const ItemsTable = props => {
 			return;
 		} else if (ev.key === 'Home') {
 			if(pickerMode && keys.length) {
-				pickerNavigate({ library: libraryKey, collection: collectionKey, search: q, qmode, items: [keys[0]], view: 'item-list' });
+				listRef.current?.scrollToRow?.({ index: 0, align: 'smart' });
+				if (keys[0]) {
+					pickerNavigate({ library: libraryKey, collection: collectionKey, search: q, qmode, items: [keys[0]], view: 'item-list' });
+				} else {
+					pendingSelectionRef.current = {
+						index: 0,
+						shiftKeys: ev.getModifierState('Shift') && pickerMode === PICKS_MULTIPLE_ITEMS
+							? selectedItemKeys : null
+					};
+				}
+				focusRow(0);
 			} else {
-				dispatch(selectFirstItem());
+				const index = await dispatch(selectFirstItem());
+				if (index !== null) {
+					focusRow(index);
+				} else if (keys.length > 0) {
+					listRef.current?.scrollToRow?.({ index: 0, align: 'smart' });
+					pendingSelectionRef.current = { index: 0, shiftKeys: ev.getModifierState('Shift') ? selectedItemKeys : null };
+					focusRow(0);
+				}
 			}
 			return;
 		} else if (ev.key === 'End') {
 			if(pickerMode && keys.length) {
-				pickerNavigate({ library: libraryKey, collection: collectionKey, search: q, qmode, items: [keys[keys.length - 1]], view: 'item-list' });
+				listRef.current?.scrollToRow?.({ index: keys.length - 1, align: 'smart' });
+				if (keys[keys.length - 1]) {
+					pickerNavigate({ library: libraryKey, collection: collectionKey, search: q, qmode, items: [keys[keys.length - 1]], view: 'item-list' });
+				} else {
+					pendingSelectionRef.current = {
+						index: keys.length - 1,
+						shiftKeys: ev.getModifierState('Shift') && pickerMode === PICKS_MULTIPLE_ITEMS
+							? selectedItemKeys : null
+					};
+				}
+				focusRow(keys.length - 1);
 			} else {
-				dispatch(selectLastItem());
+				const index = await dispatch(selectLastItem());
+				if (index !== null) {
+					focusRow(index);
+				} else if (keys.length > 0) {
+					listRef.current?.scrollToRow?.({ index: keys.length - 1, align: 'smart' });
+					pendingSelectionRef.current = { index: keys.length - 1, shiftKeys: ev.getModifierState('Shift') ? selectedItemKeys : null };
+					focusRow(keys.length - 1);
+				}
 			}
 			return;
 		} else if (ev.key === 'PageUp' && outerRef.current) {
@@ -206,19 +279,28 @@ const ItemsTable = props => {
 		ev.preventDefault();
 
 		const { nextKeys, cursorIndex } = pickerMode ?
-			selectItemsKeyboard(direction, magnitude, ev.getModifierState('Shift') && pickerMode === PICKS_MULTIPLE_ITEMS, { keys, selectedItemKeys }) :
+			selectItemsKeyboard(direction, magnitude, ev.getModifierState('Shift') && pickerMode === PICKS_MULTIPLE_ITEMS, { keys, selectedItemKeys, overrideStartIndex: prevPendingIndex }) :
 			await dispatch(navigateSelectItemsKeyboard(direction, magnitude, ev.getModifierState('Shift')));
 
-		if (pickerMode) {
+		if (pickerMode && nextKeys) {
 			pickerNavigate({ library: libraryKey, collection: collectionKey, items: nextKeys, search: q, qmode, view: 'item-list' });
+			// ScrollEffectComponent is not rendered in picker mode, so scroll explicitly
+			listRef.current?.scrollToRow?.({ index: cursorIndex, align: 'smart' });
 		}
 
-		if (cursorIndex === -1 && document.activeElement?.closest('.items-table-head') !== headerRef.current) {
-			focusBySelector('.items-table-head');
-		} else {
-			focusBySelector(`[data-index="${cursorIndex}"]`);
+		// When navigating to an unfetched item (sparse array hole), nextKeys is
+		// undefined and no selection change is dispatched, so the scroll effect
+		// won't fire. Manually scroll to the target index.
+		if (typeof nextKeys === 'undefined' && cursorIndex >= 0) {
+			listRef.current?.scrollToRow?.({ index: cursorIndex, align: 'smart' });
+			const isShiftExtend = pickerMode
+				? ev.getModifierState('Shift') && pickerMode === PICKS_MULTIPLE_ITEMS
+				: ev.getModifierState('Shift');
+			pendingSelectionRef.current = { index: cursorIndex, shiftKeys: isShiftExtend ? selectedItemKeys : null };
 		}
-	}, [isEmbedded, pickerMode, keys, selectedItemKeys, dispatch, pickerNavigate, libraryKey, collectionKey, q, qmode, focusBySelector]);
+
+		focusRow(cursorIndex);
+	}, [isEmbedded, pickerMode, keys, selectedItemKeys, dispatch, pickerNavigate, libraryKey, collectionKey, q, qmode, focusRow]);
 
 	const handleTableFocus = useCallback(async ev => {
 		const hasChangedFocused = receiveFocus(ev);
@@ -235,7 +317,10 @@ const ItemsTable = props => {
 	}, [collectionKey, dispatch, focusBySelector, keys, libraryKey, pickerMode, pickerNavigate, q, qmode, receiveFocus, selectedItemKeys?.length]);
 
 	const handleTableBlur = useCallback(ev => {
-		receiveBlur(ev);
+		const didBlur = receiveBlur(ev);
+		if (didBlur) {
+			pendingSelectionRef.current = null;
+		}
 	}, [receiveBlur]);
 
 	const handleColumnsResize = useCallback(newVisibleColumns => {
@@ -327,6 +412,67 @@ const ItemsTable = props => {
 			dispatch(connectionIssues(true));
 		}
 	}, [collectionKey, dispatch, errorCount, isMyPublications, isTrash, itemsSource, libraryKey, prevErrorCount, qmode, q, sortByPreference, sortDirectionPreference, tags]);
+
+	// When a keyboard navigation lands on an unfetched item (sparse array hole),
+	// no selection is dispatched. Once the item loads, dispatch the navigation so
+	// the row gets highlighted and arrow keys work from the new position.
+	useEffect(() => {
+		const pending = pendingSelectionRef.current;
+		if (pending !== null && keys[pending.index]) {
+			pendingSelectionRef.current = null;
+			let items = null;
+
+			if (pending.shiftKeys?.length > 0) {
+				// Shift was held -- try to extend selection from anchor to target
+				const anchorKey = pending.shiftKeys[0];
+				const anchorIndex = keys.findIndex(k => k && k === anchorKey);
+				if (anchorIndex !== -1) {
+					const startIndex = Math.min(anchorIndex, pending.index);
+					const endIndex = Math.max(anchorIndex, pending.index);
+					const rangeKeys = keys.slice(startIndex, endIndex + 1);
+					// Only use range if all items in between are fetched.
+					// Note: keys is a sparse array -- .every() skips empty
+					// slots, so use a for loop to detect holes reliably.
+					let hasHoles = false;
+					for (let i = 0; i < rangeKeys.length; i++) {
+						if (typeof rangeKeys[i] === 'undefined') {
+							hasHoles = true;
+							break;
+						}
+					}
+					if (!hasHoles) {
+						items = anchorIndex <= pending.index ? rangeKeys : [...rangeKeys].reverse();
+					}
+				}
+			}
+
+			// Fallback: select only the target item
+			if (!items) {
+				items = [keys[pending.index]];
+			}
+
+			if (pickerMode) {
+				pickerNavigate({ library: libraryKey, collection: collectionKey,
+					search: q, qmode, items, view: 'item-list' });
+				listRef.current?.scrollToRow?.({ index: pending.index, align: 'smart' });
+			} else {
+				dispatch(navigate({ items, noteKey: null, attachmentKey: null }));
+			}
+		}
+	}, [keys, dispatch, pickerMode, pickerNavigate, libraryKey, collectionKey, q, qmode]);
+
+	// Clear stale pending selection when the view changes
+	useEffect(() => {
+		pendingSelectionRef.current = null;
+	}, [libraryKey, collectionKey, itemsSource]);
+
+	useEffect(() => {
+		return () => {
+			if (pendingFocusRef.current) {
+				cancelAnimationFrame(pendingFocusRef.current);
+			}
+		};
+	}, []);
 
 	return <Table
 			columns={columns}

@@ -29,10 +29,15 @@ export const selectItemsMouse = (targetItemKey, isShiftModifer, isCtrlModifer, {
 	return nextKeys;
 }
 
-export const selectItemsKeyboard = (direction, magnitude, isMultiSelect, { keys, selectedItemKeys }) => {
+export const selectItemsKeyboard = (direction, magnitude, isMultiSelect, { keys, selectedItemKeys, overrideStartIndex }) => {
 	const vector = direction * magnitude;
-	const lastItemKey = selectedItemKeys[selectedItemKeys.length - 1];
-	const index = keys.findIndex(key => key && key === lastItemKey);
+	let index;
+	if (typeof overrideStartIndex === 'number') {
+		index = overrideStartIndex;
+	} else {
+		const lastItemKey = selectedItemKeys[selectedItemKeys.length - 1];
+		index = keys.findIndex(key => key && key === lastItemKey);
+	}
 
 	let nextKeys;
 	let cursorIndex;
@@ -42,6 +47,11 @@ export const selectItemsKeyboard = (direction, magnitude, isMultiSelect, { keys,
 		cursorIndex = -1;
 	} else {
 		const nextIndex = clamp(index + vector, 0, keys.length - 1);
+		// Guard against navigating to an unfetched item (sparse array hole).
+		// Return cursorIndex without nextKeys so that the dispatch is skipped.
+		if (typeof keys[nextIndex] === 'undefined') {
+			return { cursorIndex: nextIndex };
+		}
 		cursorIndex = nextIndex;
 		if (isMultiSelect) {
 			let counter = 1;

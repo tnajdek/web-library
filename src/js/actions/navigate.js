@@ -108,7 +108,7 @@ const navigateSelectItemsKeyboard = (direction, magnitude, isMultiSelect) => {
 		const { nextKeys, cursorIndex } = selectItemsKeyboard(direction, magnitude, isMultiSelect, { keys, selectedItemKeys });
 
 		if(typeof nextKeys === 'undefined') {
-			return cursorIndex;
+			return { cursorIndex };
 		}
 
 		dispatch(navigate({ items: nextKeys, noteKey: null, attachmentKey: null }));
@@ -127,7 +127,7 @@ const selectFirstItem = (onlyIfNoneSelected = false) => {
 		}
 
 		const keys = get(state, path, []);
-		if(keys.length > 0) {
+		if(keys.length > 0 && keys[0]) {
 			dispatch(navigate({ items: [keys[0]], noteKey: null, attachmentKey: null, view: 'item-list' }));
 			return 0;
 		}
@@ -142,7 +142,7 @@ const selectLastItem = () => {
 		const path = [...getItemKeysPath({ itemsSource, libraryKey, collectionKey }), 'keys'];
 
 		const keys = get(state, path, []);
-		if(keys.length > 0) {
+		if(keys.length > 0 && keys[keys.length - 1]) {
 			dispatch(navigate({ items: [keys[keys.length - 1]], noteKey: null, attachmentKey: null }));
 			return keys.length - 1;
 		}

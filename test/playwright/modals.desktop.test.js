@@ -1,9 +1,8 @@
 import {test, expect} from "../utils/playwright-fixtures.js";
-import {closeServer, loadFixtureState, makeCustomHandler, makeTextHandler} from "../utils/fixed-state-server.js";
+import {closeServer, generateTestItems, loadFixtureState, makeCustomHandler, makePaginatedHandler, makeTextHandler} from "../utils/fixed-state-server.js";
 import testUserManageTags from '../fixtures/response/test-user-manage-tags.json' assert { type: 'json' };
 import identifierSearchResults from '../fixtures/response/identifier-search-web-results.json' assert { type: 'json' };
 import itemsInCollectionAlgorithms from '../fixtures/response/test-user-get-items-in-collection-algorithms.json' assert { type: 'json' };
-
 
 test.describe('Desktop Modal Focus Management', () => {
 	let server;
@@ -193,6 +192,151 @@ test.describe('Desktop Modal Focus Management', () => {
 
 		await page.keyboard.press('ArrowRight');
 		await expect(modal.getByRole('button', { name: 'Select' })).toBeFocused();
+	});
+
+	test('PageDown navigates through unfetched items in Change Parent Item modal', async ({ page, serverPort }) => {
+		const allItems = generateTestItems(83, { keyPrefix: 'PICK', titlePrefix: 'Picker Item', collections: ['CSB4KZUU'] });
+		const handlers = [
+			makeTextHandler('/api/users/1/items/37V7V4NT/file/view/url', 'https://files.zotero.net/abcdefgh/18726.html'),
+			makeTextHandler('/api/users/1/items/K24TUDDL/file/view/url', 'https://files.zotero.net/abcdefgh/Silver%20-%202005%20-%20Cooperative%20pathfinding.pdf'),
+			makePaginatedHandler('/api/users/1/collections/CSB4KZUU/items/top', allItems),
+			makeCustomHandler('/api/', [], { totalResults: 0 }),
+		];
+		server = await loadFixtureState('desktop-test-user-attachment-in-collection-view', serverPort, page, handlers);
+
+		// Open the Change Parent Item modal
+		await page.getByRole('tab', { name: 'Attachments' }).click();
+		const fullText = page.getByRole('listitem', { name: 'Full Text' });
+		await fullText.getByRole('button', { name: 'Attachment Options' }).click();
+		await page.getByRole('menuitem', { name: 'Change Parent Item' }).click();
+
+		const modal = page.getByRole('dialog', { name: 'Change Parent Item' });
+		await expect(modal).toBeVisible();
+
+		// Wait for items to load and click the first row to select it and
+		// give the items table focus
+		const firstRow = modal.locator('[role="row"][data-index="0"]');
+		await expect(firstRow).toBeVisible();
+		await firstRow.click();
+		await expect(firstRow).toHaveAttribute('aria-selected', 'true');
+
+		// Helper to get the selected row index
+		const getSelectedIndex = () => page.evaluate(() => {
+			const modal = document.querySelector('[role="dialog"][aria-label="Change Parent Item"]');
+			const sel = modal?.querySelector('[role="row"][aria-selected="true"]');
+			return sel ? parseInt(sel.dataset.index) : -1;
+		});
+
+		// First PageDown -- should move selection forward by one page
+		await page.keyboard.press('PageDown');
+		await page.waitForTimeout(300);
+		const indexAfterFirst = await getSelectedIndex();
+		expect(indexAfterFirst).toBeGreaterThan(0);
+
+		// Second PageDown -- should advance further
+		await page.keyboard.press('PageDown');
+		await page.waitForTimeout(300);
+		const indexAfterSecond = await getSelectedIndex();
+		expect(indexAfterSecond).toBeGreaterThan(indexAfterFirst);
+
+		// Third PageDown -- reaches the unfetched zone (> index 50). Once
+		// items load, the pending selection should be resolved.
+		await page.keyboard.press('PageDown');
+		await page.waitForTimeout(1000);
+		const indexAfterThird = await getSelectedIndex();
+		expect(indexAfterThird).toBeGreaterThan(indexAfterSecond);
+
+		// Focus should remain within the modal
+		expect(await page.evaluate(() => {
+			const modal = document.querySelector('[role="dialog"][aria-label="Change Parent Item"]');
+			return modal?.contains(document.activeElement);
+		})).toBe(true);
+	});
+
+	test('Shift+PageDown extends selection through unfetched items in Add Related modal', async ({ page, serverPort }) => {
+		const allItems = generateTestItems(83, { keyPrefix: 'RLAT', titlePrefix: 'Related Item', collections: ['WTTJ2J56'] });
+		const handlers = [
+			makePaginatedHandler('/api/users/1/collections/WTTJ2J56/items/top', allItems),
+			makeCustomHandler('/api/', [], { totalResults: 0 }),
+		];
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page, handlers);
+
+		// Open the Add Related modal
+		await page.getByRole('tab', { name: 'Related' }).click();
+		await page.getByRole('button', { name: 'Add Related Item' }).click();
+
+		const modal = page.getByRole('dialog', { name: 'Add Related Items' });
+		await expect(modal).toBeVisible();
+
+		// Wait for items to load and click the first row
+		const firstRow = modal.locator('[role="row"][data-index="0"]');
+		await expect(firstRow).toBeVisible();
+		await firstRow.click();
+		await expect(firstRow).toHaveAttribute('aria-selected', 'true');
+
+		// Helper: get all selected row indices visible in the DOM
+		const getSelectedIndices = () => page.evaluate(() => {
+			const modal = document.querySelector('[role="dialog"][aria-label="Add Related Items"]');
+			return Array.from(modal?.querySelectorAll('[role="row"][aria-selected="true"]') ?? [])
+				.map(r => parseInt(r.dataset.index))
+				.sort((a, b) => a - b);
+		});
+
+		// Shift+PageDown extends the selection forward by one page each press.
+		// Each page is ~19 rows (viewport height ~502px / 26px row height).
+		// Press until cursorIndex exceeds the initial fetch boundary (50 items).
+		let prevMax = 0;
+		for (let press = 0; press < 4; press++) {
+			await page.keyboard.press('Shift+PageDown');
+
+			// Wait for the selection to advance beyond the previous extent.
+			// When the target is unfetched, give extra time for the fetch +
+			// pending selection resolution.
+			await page.waitForFunction(
+				(prev) => {
+					const modal = document.querySelector('[role="dialog"][aria-label="Add Related Items"]');
+					const rows = modal?.querySelectorAll('[role="row"][aria-selected="true"]');
+					if (!rows?.length) return false;
+					const indices = Array.from(rows).map(r => parseInt(r.dataset.index));
+					return Math.max(...indices) > prev;
+				},
+				prevMax,
+				{ timeout: 10000 }
+			);
+
+			const indices = await getSelectedIndices();
+			prevMax = Math.max(...indices);
+		}
+
+		// After 4 Shift+PageDown presses the cursor should be past the initial
+		// fetch boundary (index > 50), confirming unfetched items were loaded
+		expect(prevMax).toBeGreaterThan(50);
+
+		// The selected range is contiguous from 0 to prevMax. Verify that
+		// every visible row within that range is selected and every row
+		// beyond is not.
+		const visibleSelected = await getSelectedIndices();
+		for (let i = 1; i < visibleSelected.length; i++) {
+			expect(visibleSelected[i]).toBe(visibleSelected[i - 1] + 1);
+		}
+
+		const { selectedIndices, unselectedIndices } = await page.evaluate(() => {
+			const modal = document.querySelector('[role="dialog"][aria-label="Add Related Items"]');
+			const rows = Array.from(modal?.querySelectorAll('[role="row"][data-index]') ?? []);
+			const selected = [], unselected = [];
+			for (const r of rows) {
+				const idx = parseInt(r.dataset.index);
+				if (isNaN(idx)) continue;
+				(r.getAttribute('aria-selected') === 'true' ? selected : unselected).push(idx);
+			}
+			return { selectedIndices: selected.sort((a, b) => a - b), unselectedIndices: unselected.sort((a, b) => a - b) };
+		});
+		// All visible rows within the selection range (0..prevMax) must be selected
+		expect(selectedIndices.every(i => i <= prevMax)).toBe(true);
+		// All visible rows beyond the selection must not be selected
+		expect(unselectedIndices.every(i => i > prevMax)).toBe(true);
+		// There must be selected rows visible
+		expect(selectedIndices.length).toBeGreaterThan(0);
 	});
 
 	test('Focus is trapped within Add Related modal', async ({ page, serverPort }) => {

@@ -96,9 +96,12 @@ const Table = props => {
 			}
 		}
 
-		// With react-window 2.x it's no longer possible to get the ref to the outer element it
-		// renders, so instead we query for it as soon as it signals listRef is ready
-		outerRefTracker.current = tableRef.current?.querySelector('[role="rowgroup"]');
+		// react-window 2.x exposes the container element via the imperative handle's
+		// `element` property. Using this directly avoids a race condition where
+		// tableRef.current is null during the initial mount (React processes child refs
+		// before parent refs, so useImperativeHandle fires before the grid div's
+		// callback ref sets tableRef.current).
+		outerRefTracker.current = r?.element ?? null;
 
 		// The overflow list is made focusable by default in most browsers, and to prevent this, we
 		// need to set `tabIndex` to -1. However, since this element is rendered by react-window, we
