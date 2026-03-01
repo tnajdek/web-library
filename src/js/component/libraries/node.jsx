@@ -13,7 +13,7 @@ import {getScrollContainerPageCount, stopPropagation} from '../../utils';
 
 const Node = props => {
 	const { className, children, dndData, isOpen, isReadOnly, isFileUploadAllowed, onFileDrop, onNodeDrop, onOpen = noop, onRename =
-		noop, onRenameCancel = noop, onSelect = noop, showTwisty, onFocusNext = noop, onFocusPrev =
+		noop, onSelect = noop, showTwisty, onFocusNext = noop, onFocusPrev =
 		noop, onKeyDown = noop, subtree, shouldBeDraggable, ...rest } = props;
 	const [isFocused, setIsFocused] = useState(false);
 	const ref = useRef(null);
@@ -23,10 +23,7 @@ const Node = props => {
 	const [_, dragRef] = useDrag({ // eslint-disable-line no-unused-vars
 		type: COLLECTION,
 		canDrag: () => shouldBeDraggable,
-		item: () => {
-			onRenameCancel();
-			return dndData;
-		},
+		item: () => dndData,
 		end: (item, monitor) => {
 			const dropResult = monitor.getDropResult();
 			if(dropResult) {
