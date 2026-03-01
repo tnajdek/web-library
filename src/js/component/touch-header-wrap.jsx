@@ -13,7 +13,7 @@ import { useEditMode } from '../hooks';
 const ROOT_NODE = {
 	key: 'root',
 	type: 'root',
-	path: { view: 'libraries' },
+	path: {},
 	label: 'Libraries'
 };
 

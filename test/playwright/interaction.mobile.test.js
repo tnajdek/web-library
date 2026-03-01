@@ -8,6 +8,30 @@ test.describe('Mobile Interaction', () => {
 		await closeServer(server);
 	});
 
+	test('Tapping "Libraries" in touch header navigates to root libraries view', async ({ page, serverPort }) => {
+		server = await loadFixtureState('mobile-test-user-library-view', serverPort, page);
+
+		// Target the collections touch-nav (on iPad there are two: "Collections" and "Items")
+		const collectionsNav = page.getByRole('navigation', { name: 'Collections' }).or(
+			page.getByRole('navigation', { name: 'Main' })
+		);
+		await expect(collectionsNav).toBeVisible();
+
+		// The "Libraries" label should be visible as the back/previous button
+		const librariesButton = collectionsNav.locator('.previous .truncate', { hasText: 'Libraries' });
+		await expect(librariesButton).toBeVisible();
+
+		// Tap the "Libraries" back button
+		await librariesButton.tap();
+
+		// URL should now be the root path
+		await expect(page).toHaveURL(/^http:\/\/localhost:\d+\/$/);
+
+		// Both libraries should be visible as tappable tree items in the root view
+		await expect(page.getByRole('treeitem', { name: 'My Library' })).toBeVisible();
+		await expect(page.getByRole('treeitem', { name: 'Animals' })).toBeVisible();
+	});
+
 	test('Scrolling collection tree closes open dot menu dropdown', async ({ page, serverPort }) => {
 		server = await loadFixtureState('mobile-test-user-library-view', serverPort, page);
 

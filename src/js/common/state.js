@@ -79,6 +79,9 @@ const getParamsFromPath = (path) => {
 		}
 		return params;
 	}
+	if(path === '/' || path === '') {
+		return {};
+	}
 	return null;
 };
 

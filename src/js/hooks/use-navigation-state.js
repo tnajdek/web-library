@@ -119,7 +119,7 @@ const useNavigationState = (pickerMode, baseState = {}) => {
 		thp.unshift({
 			key: 'root',
 			type: 'root',
-			path: { view: 'libraries' },
+			path: {},
 			label: 'Libraries'
 		});
 
