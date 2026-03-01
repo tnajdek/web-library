@@ -352,7 +352,9 @@ const Attachment = memo(props => {
 		setIsFocused(false);
 	}, [isTouchOrSmall, receiveBlur]);
 
-	dragRef(ref);
+	if(!isTouchOrSmall) {
+		dragRef(ref);
+	}
 
 	return (
 		<li
@@ -572,7 +574,7 @@ const Attachments = ({ id, isActive, isReadOnly, ...rest }) => {
 			className={cx("attachments", { 'dnd-target': canDrop && isOver })}
 			isActive={isActive}
 			isLoading={!isReady}
-			ref={drop}
+			ref={isTouchOrSmall ? null : drop}
 			{...pick(rest, p => p === 'role' || p.startsWith('data-') || p.startsWith('aria-'))}
 		>
 			<CSSTransition

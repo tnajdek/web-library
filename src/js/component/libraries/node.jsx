@@ -1,8 +1,9 @@
 import cx from 'classnames';
 import PropTypes from 'prop-types';
 import {memo, useCallback, useRef, useState} from 'react';
+import {useSelector} from 'react-redux';
 import {NativeTypes} from 'react-dnd-html5-backend';
-import {useDrag, useDrop} from 'react-dnd'
+import {useDrag, useDrop} from 'react-dnd';
 import {useDebouncedCallback} from 'use-debounce';
 import {isTriggerEvent, noop, pick} from 'web-common/utils';
 import {Icon} from 'web-common/components';
@@ -11,16 +12,13 @@ import {useFocusManager} from 'web-common/hooks'
 import {ATTACHMENT, COLLECTION, ITEM} from '../../constants/dnd';
 import {getScrollContainerPageCount, stopPropagation} from '../../utils';
 
-const Node = props => {
-	const { className, children, dndData, isOpen, isReadOnly, isFileUploadAllowed, onFileDrop, onNodeDrop, onOpen = noop, onRename =
-		noop, onSelect = noop, showTwisty, onFocusNext = noop, onFocusPrev =
-		noop, onKeyDown = noop, subtree, shouldBeDraggable, ...rest } = props;
-	const [isFocused, setIsFocused] = useState(false);
-	const ref = useRef(null);
-	const containerRef = useRef(null);
-	const { receiveFocus, receiveBlur, focusNext, focusPrev } = useFocusManager(containerRef, { isFocusable: true, targetTabIndex: -3 });
+const EMPTY_DND_STATE = { isOver: false, canDrop: false };
 
-	const [_, dragRef] = useDrag({ // eslint-disable-line no-unused-vars
+// -- Extracted into a hook so that drag/drop can be completely disabled on touch/small devices for performance reasons.
+const useDndNode = ({ ref, dndData, isReadOnly, isFileUploadAllowed, onFileDrop, onNodeDrop, shouldBeDraggable }) => {
+	const isTouchOrSmall = useSelector(state => state.device.isTouchOrSmall);
+
+	const [, dragRef] = useDrag({ // eslint-disable-line no-unused-vars
 		type: COLLECTION,
 		canDrag: () => shouldBeDraggable,
 		item: () => dndData,
@@ -73,7 +71,7 @@ const Node = props => {
 				const {
 					targetType,
 					collectionKey: targetCollectionKey,
-					libraryKey: targetLibraryKey,
+					libraryKey: targetLibraryKey, // eslint-disable-line no-unused-vars
 					getParents: targetGetParents,
 				} = dndData;
 
@@ -126,6 +124,25 @@ const Node = props => {
 			}
 		}
 	});
+
+	if(!isTouchOrSmall) {
+		dragRef(ref);
+		dropRef(ref);
+	}
+
+	return isTouchOrSmall ? EMPTY_DND_STATE : { isOver, canDrop };
+};
+
+const Node = props => {
+	const { className, children, dndData, isOpen, isReadOnly, isFileUploadAllowed, onFileDrop, onNodeDrop, onOpen = noop, onRename =
+		noop, onSelect = noop, showTwisty, onFocusNext = noop, onFocusPrev =
+		noop, onKeyDown = noop, subtree, shouldBeDraggable, ...rest } = props;
+	const [isFocused, setIsFocused] = useState(false);
+	const ref = useRef(null);
+	const containerRef = useRef(null);
+	const { receiveFocus, receiveBlur, focusNext, focusPrev } = useFocusManager(containerRef, { isFocusable: true, targetTabIndex: -3 });
+
+	const { isOver, canDrop } = useDndNode({ ref, dndData, isReadOnly, isFileUploadAllowed, onFileDrop, onNodeDrop, shouldBeDraggable });
 
 	const handleTwistyMouseDown = useCallback(ev => {
 		ev && ev.stopPropagation();
@@ -180,9 +197,6 @@ const Node = props => {
 		receiveBlur(ev);
 	}, [receiveBlur]);
 
-	dragRef(ref);
-	dropRef(ref);
-
 	return (
 		// NOTE: Node can end up having both 'focus' and 'focused' classes.
 		// Former is when node has a keyboard focus, latter is when collection
@@ -227,7 +241,6 @@ Node.propTypes = {
 	dndData: PropTypes.object,
 	isFileUploadAllowed: PropTypes.bool,
 	isOpen: PropTypes.bool,
-	isOver: PropTypes.bool,
 	isReadOnly: PropTypes.bool,
 	onFileDrop: PropTypes.func,
 	onFocusNext: PropTypes.func,
