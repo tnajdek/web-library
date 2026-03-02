@@ -27,7 +27,7 @@ for(let [iconTypeName, iconDir] of Object.entries(iconsPaths)) {
 		// for simplicity, only desktop icons are considered for fallback icons
 		// i.e. if there is no desktop 1x icon for item type, all devices will use a fallback icon
 		// but warning (below) will be shown for 2x and mobile missing icons as well
-		await fs.writeJSON(targetJSONPath, { itemTypesWithIcons: foundItemTypes });
+		await fs.outputJSON(targetJSONPath, { itemTypesWithIcons: foundItemTypes });
 	}
 
 	const missingItemTypeIcons = knownItemTypes.filter(it => !ignoredItemTypes.includes(it) && !foundItemTypes.includes(it));
