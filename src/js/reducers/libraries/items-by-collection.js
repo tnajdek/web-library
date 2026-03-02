@@ -39,7 +39,6 @@ const detectChangesInMembership = (mappings, state, action, items) => {
 }
 
 const itemsByCollection = (state = {}, action, { items, meta }) => {
-	//@TODO: action.otherItems is deprecated, use items
 	switch(action.type) {
 		case RECEIVE_CREATE_ITEM:
 			if(action.item.parentItem) { return state; }
@@ -51,13 +50,13 @@ const itemsByCollection = (state = {}, action, { items, meta }) => {
 							meta.mappings,
 							state[collectionKey] || {},
 							[action.item.key],
-							{ ...action.otherItems, [action.item.key]: action.item }
+							{ ...items, [action.item.key]: action.item }
 						)
 						return aggr;
 					}, {}))
 			}
 		case RECEIVE_CREATE_ITEMS:
-			var otherItems = { ...action.otherItems, ...indexByKey(action.items) };
+			var otherItems = { ...items, ...indexByKey(action.items) };
 			return {
 				...state,
 				...(action.items.reduce((aggr, item) => {
@@ -90,15 +89,7 @@ const itemsByCollection = (state = {}, action, { items, meta }) => {
 				return aggr;
 			}, {});
 		case RECEIVE_RECOVER_ITEMS_TRASH:
-			return Object.entries(state).reduce((aggr, [collectionKey, itemKeys]) => {
-				aggr[collectionKey] = injectExtraItemKeys(
-					meta.mappings,
-					itemKeys,
-					action.itemKeysByCollection[collectionKey] || [],
-					{ ...action.otherItems, ...indexByKey(action.items) }
-				);
-				return aggr;
-			}, {});
+			return detectChangesInMembership(meta.mappings, state, action, items);
 		case RECEIVE_ADD_ITEMS_TO_COLLECTION:
 			return {
 				...state,
@@ -108,7 +99,7 @@ const itemsByCollection = (state = {}, action, { items, meta }) => {
 					action.itemKeysChanged.filter(iKey =>
 						action.items.find(item => item.key === iKey && !item.deleted)
 					),
-					{ ...action.otherItems, ...indexByKey(action.items) }
+					{ ...items, ...indexByKey(action.items) }
 				)
 			}
 		case RECEIVE_REMOVE_ITEMS_FROM_COLLECTION:
@@ -169,7 +160,7 @@ const itemsByCollection = (state = {}, action, { items, meta }) => {
 						meta.mappings,
 						itemKeysState,
 						action.item.key,
-						{ ...action.otherItems, [action.item.key]: action.item }
+						{ ...items, [action.item.key]: action.item }
 					);
 				} else {
 					itemKeysState = filterItemKeys(itemKeysState, action.item.key);
@@ -213,7 +204,7 @@ const itemsByCollection = (state = {}, action, { items, meta }) => {
 		case SORT_ITEMS:
 			return Object.entries(state).reduce((aggr, [collectionKey, itemKeys]) => {
 				aggr[collectionKey] = sortItemKeysOrClear(
-					meta.mappings, itemKeys, action.items, action.sortBy, action.sortDirection
+					meta.mappings, itemKeys, items, action.sortBy, action.sortDirection
 				);
 				return aggr
 			}, {});

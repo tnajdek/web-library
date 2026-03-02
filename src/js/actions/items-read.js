@@ -215,14 +215,12 @@ const fetchRelatedItems = (itemKey, queryOptions, overrides) => {
 
 const sortItems = (sortBy, sortDirection) => {
 	return (dispatch, getState) => {
-		const state = getState();
-		const { libraryKey } = state.current;
+		const { libraryKey } = getState().current;
 		dispatch({
 			type: SORT_ITEMS,
 			sortBy,
 			sortDirection,
 			libraryKey,
-			items: state.libraries[libraryKey].items
 		});
 	}
 };

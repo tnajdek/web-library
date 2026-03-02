@@ -51,7 +51,7 @@ const itemsTop = (state = {}, action, { items, meta }) => {
 					meta.mappings,
 					state,
 					action.item.key,
-					{ ...action.otherItems, [action.item.key]: action.item }
+					{ ...items, [action.item.key]: action.item }
 				);
 			} else {
 				return state;
@@ -61,7 +61,7 @@ const itemsTop = (state = {}, action, { items, meta }) => {
 				meta.mappings,
 				state,
 				action.items.filter(i => !i.parentItem).map(i => i.key),
-				{ ...action.otherItems, ...indexByKey(action.items) }
+				{ ...items, ...indexByKey(action.items) }
 			);
 		case RECEIVE_DELETE_ITEM:
 			return filterItemKeys(state, action.item.key);
@@ -74,7 +74,7 @@ const itemsTop = (state = {}, action, { items, meta }) => {
 				meta.mappings,
 				state,
 				action.itemKeys,
-				{ ...action.otherItems, ...indexByKey(action.items) }
+				{ ...items, ...indexByKey(action.items) }
 			);
 		case REQUEST_TOP_ITEMS:
 			return {
@@ -96,7 +96,7 @@ const itemsTop = (state = {}, action, { items, meta }) => {
 		case RECEIVE_FETCH_ITEMS:
 			return detectChangesInTop(meta.mappings, state, action, items);
 		case SORT_ITEMS:
-			return sortItemKeysOrClear(meta.mappings, state, action.items, action.sortBy, action.sortDirection);
+			return sortItemKeysOrClear(meta.mappings, state, items, action.sortBy, action.sortDirection);
 		case RECEIVE_UPDATE_ITEM: {
 			const item = action.item;
 			if (!('keys' in state)) {

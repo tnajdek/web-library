@@ -41,14 +41,14 @@ const itemsByParent = (state = {}, action, { items, meta }) => {
 						meta.mappings,
 						state[parentKey],
 						action.item.key,
-						{ ...action.otherItems, [action.item.key]: action.item }
+						{ ...items, [action.item.key]: action.item }
 					)
 				};
 			}
 			return state;
 		case RECEIVE_RECOVER_ITEMS_TRASH:
 		case RECEIVE_CREATE_ITEMS:
-			var otherItems = { ...action.otherItems, ...indexByKey(action.items) };
+			var otherItems = { ...items, ...indexByKey(action.items) };
 			return {
 				...state,
 				...(action.items.reduce((aggr, item) => {
@@ -125,7 +125,7 @@ const itemsByParent = (state = {}, action, { items, meta }) => {
 						meta.mappings,
 						childKeys,
 						action.item.key,
-						{ ...action.otherItems, [action.item.key]: action.item }
+						{ ...items, [action.item.key]: action.item }
 					)];
 				} else {
 					return [pk, filterItemKeys(childKeys, action.item.key)];

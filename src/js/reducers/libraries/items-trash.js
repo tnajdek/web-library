@@ -48,7 +48,7 @@ const itemsTrash = (state = {}, action, { items, meta }) => {
 				meta.mappings,
 				state,
 				action.itemKeys,
-				{ ...action.otherItems, ...indexByKey(action.items) }
+				{ ...items, ...indexByKey(action.items) }
 			);
 		case RECEIVE_RECOVER_ITEMS_TRASH:
 			return filterItemKeys(state, action.itemKeys);
@@ -71,7 +71,7 @@ const itemsTrash = (state = {}, action, { items, meta }) => {
 			}
 		case SORT_ITEMS:
 			return sortItemKeysOrClear(
-				meta.mappings, state, action.items, action.sortBy, action.sortDirection
+				meta.mappings, state, items, action.sortBy, action.sortDirection
 			);
 		case RECEIVE_FETCH_ITEMS:
 			return detectChangesInTrash(meta.mappings, state, action, items);

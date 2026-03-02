@@ -69,7 +69,7 @@ const query = (state = defaultState, action, entireState) => {
 			}
 		case SORT_ITEMS:
 			return sortItemKeysOrClear(
-				meta.mappings, state, action.items, action.sortBy, action.sortDirection
+				meta.mappings, state, entireState?.libraries?.[action.libraryKey]?.items ?? {}, action.sortBy, action.sortDirection
 			);
 		case REQUEST_TAGS_IN_ITEMS_BY_QUERY:
 			return {

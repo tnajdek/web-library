@@ -12,10 +12,13 @@ import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
 import { makeSuccessResponse } from './utils/response';
 import { MainZotero } from '../src/js/component/main';
+import { recoverItemsFromTrash } from '../src/js/actions/items-write';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
 import stateRaw from './fixtures/state/desktop-test-user-trash-view.json';
+import itemViewStateRaw from './fixtures/state/desktop-test-user-item-view.json';
 
 const state = JSONtoState(stateRaw);
+const itemViewState = JSONtoState(itemViewStateRaw);
 
 describe('Trash', () => {
 	const handlers = [];
@@ -148,6 +151,51 @@ describe('Trash', () => {
 		expect(screen.getByRole('treeitem', { name: 'Trashed Collection' })).toBeInTheDocument();
 		expect(collectionsRecovered).toBe(true);
 		expect(itemsRecovered).toBe(true);
+	});
+
+	test('Trashing item removes it from collection, recovering restores it', async () => {
+		const user = userEvent.setup();
+		let nextVersion = itemViewState.libraries.u1.sync.version + 1;
+
+		window.jsdom.reconfigure({
+			url: 'http://localhost/testuser/collections/WTTJ2J56/items/VR82JUX8'
+		});
+
+		server.use(
+			http.post('https://api.zotero.org/users/1/items', async ({ request }) => {
+				const items = await request.json();
+				const deleted = items[0].deleted;
+				const responseBody = makeSuccessResponse(
+					items.map(i => i.key),
+					itemViewState.libraries.u1.dataObjects,
+					++nextVersion,
+					{ deleted }
+				);
+				return HttpResponse.json(responseBody);
+			}),
+		);
+
+		const { store } = renderWithProviders(<MainZotero />, { preloadedState: itemViewState });
+		await waitForPosition();
+
+		// Verify item is initially in the collection
+		expect(store.getState().libraries.u1.itemsByCollection.WTTJ2J56.keys).toContain('VR82JUX8');
+
+		// Move item to trash via UI
+		await user.click(screen.getByRole('button', { name: 'Move To Trash' }));
+
+		// Verify item is removed from the collection
+		await waitFor(() => {
+			expect(store.getState().libraries.u1.itemsByCollection.WTTJ2J56.keys).not.toContain('VR82JUX8');
+		});
+
+		// Recover item from trash
+		store.dispatch(recoverItemsFromTrash(['VR82JUX8']));
+
+		// Verify item reappears in the collection
+		await waitFor(() => {
+			expect(store.getState().libraries.u1.itemsByCollection.WTTJ2J56.keys).toContain('VR82JUX8');
+		});
 	});
 
 	test('Collections are trashed and deleted recursively, but only the parent collection appears in the trash', async () => {

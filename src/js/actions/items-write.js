@@ -92,25 +92,12 @@ const postItemsMultiPatch = async (state, multiPatch, libraryKey = null) => {
 
 	const items = [];
 	const itemKeys = [];
-	const itemKeysByCollection = {};
-	const itemKeysTop = [];
 
 	multiPatch.forEach((_, index) => {
 		try {
 			const updatedItem = response.getEntityByIndex(index);
 			itemKeys.push(updatedItem.key);
 			items.push(updatedItem);
-			state.libraries[libraryKey].items[updatedItem.key]
-				.collections.forEach(collectionKey => {
-					if(!(collectionKey in itemKeysByCollection)) {
-						itemKeysByCollection[collectionKey] = [];
-					}
-					itemKeysByCollection[collectionKey].push(updatedItem.key);
-				})
-
-			if(!state.libraries[libraryKey].items[updatedItem.key].parentItem) {
-				itemKeysTop.push(updatedItem.key);
-			}
 		} catch {
 			// ignore single-item failure as we're dispatching aggregated ERROR
 			// containing all keys that failed to update
@@ -121,8 +108,6 @@ const postItemsMultiPatch = async (state, multiPatch, libraryKey = null) => {
 		response,
 		items,
 		itemKeys,
-		itemKeysByCollection,
-		itemKeysTop,
 	};
 }
 
@@ -173,14 +158,10 @@ const queueCreateItems = (items, libraryKey, id, resolve, reject) => {
 
 				const createdItems = extractItems(response, state);
 
-				//@TODO: refactor
-				const otherItems = state.libraries[libraryKey] ? state.libraries[libraryKey].items : {};
-
 				dispatch({
 					type: RECEIVE_CREATE_ITEMS,
 					libraryKey,
 					items: createdItems,
-					otherItems,
 					response,
 					id
 				});
@@ -235,7 +216,6 @@ const createItem = (properties, libraryKey) => {
 				type: RECEIVE_CREATE_ITEM,
 				libraryKey,
 				item,
-				otherItems: state.libraries[libraryKey].items,
 				response
 			});
 			return item;
@@ -274,7 +254,6 @@ const deleteItem = item => {
 				type: RECEIVE_DELETE_ITEM,
 				libraryKey,
 				item,
-				otherItems: state.libraries[libraryKey].items,
 				response
 			});
 		} catch(error) {
@@ -337,7 +316,6 @@ const queueDeleteItems = (itemKeys, libraryKey, id, resolve, reject) => {
 					itemKeys,
 					items,
 					libraryKey,
-					otherItems: state.libraries[libraryKey].items,
 					response,
 					id
 				});
@@ -444,7 +422,6 @@ const queueUpdateItem = (itemKey, patch, libraryKey, { resolve, reject, id }) =>
 					patch,
 					id,
 					response,
-					otherItems: state.libraries[libraryKey].items,
 				});
 
 				resolve(updatedItem);
@@ -794,7 +771,6 @@ const queueMoveItemsToTrash = (itemKeys, libraryKey, id) => {
 					id,
 					itemKeys,
 					...itemsData,
-					otherItems: state.libraries[libraryKey].items,
 				});
 
 				if(affectedParentItemKeys.length > 0) {
@@ -865,7 +841,6 @@ const queueRecoverItemsFromTrash = (itemKeys, libraryKey, id) => {
 					id,
 					itemKeys,
 					...itemsData,
-					otherItems: state.libraries[libraryKey].items,
 				});
 				if(affectedParentItemKeys.length > 0) {
 					dispatch(fetchItemsByKeys(affectedParentItemKeys));
@@ -940,8 +915,7 @@ const queueToggleTagOnItems = (itemKeys, libraryKey, tagsToToggle, toggleAction,
 					items,
 					response,
 					id,
-					// otherItems: state.libraries[libraryKey].items,
-				});
+					});
 			} catch(error) {
 				dispatch({
 					type: ERROR_ADD_TAGS_TO_ITEMS,
@@ -1019,7 +993,6 @@ const queueAddToCollection = (itemKeys, collectionKey, libraryKey, id) => {
 					items,
 					response,
 					id,
-					otherItems: state.libraries[libraryKey].items,
 				});
 			} catch(error) {
 				dispatch({
@@ -1347,7 +1320,6 @@ const queueRemoveFromCollection = (itemKeys, collectionKey, libraryKey, id) => {
 					items,
 					response,
 					id,
-					otherItems: state.libraries[libraryKey].items,
 				});
 			} catch(error) {
 				dispatch({
