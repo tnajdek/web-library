@@ -11,6 +11,7 @@ import { PDFWorker } from '../src/js/common/pdf-worker.js';
 
 import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
 import stateRaw from './fixtures/state/desktop-test-user-top-level-attachment-view.json';
@@ -62,21 +63,7 @@ describe('Metadata Retrieval', () => {
 	];
 	const server = setupServer(...handlers)
 	applyAdditionalJestTweaks();
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
-
-	afterEach(() => {
-		server.resetHandlers();
-		// mockedGetRecognizerData.mockClear();
-	});
-	afterAll(() => server.close());
+	setupMSWLifecycle(server);
 
 	test('Recognize and Unrecognize PDF with an identifier', async () => {
 		window.jsdom.reconfigure({ url: 'http://localhost/testuser/collections/CSB4KZUU/items/UMPPCXU4' });

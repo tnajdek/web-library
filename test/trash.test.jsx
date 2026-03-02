@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event'
 
 import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import { makeSuccessResponse } from './utils/response';
 import { MainZotero } from '../src/js/component/main';
 import { recoverItemsFromTrash } from '../src/js/actions/items-write';
@@ -24,23 +25,12 @@ describe('Trash', () => {
 	const handlers = [];
 	const server = setupServer(...handlers)
 	applyAdditionalJestTweaks();
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
 		window.jsdom.reconfigure({ url: 'http://localhost/testuser/trash' });;
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test('Lists and counts items and collections in trash', async () => {
 		renderWithProviders(<MainZotero />, { preloadedState: state });

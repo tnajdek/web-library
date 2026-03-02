@@ -6,6 +6,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from './utils/render';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks } from './utils/common';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import minState from './fixtures/state/minimal.json';
 
 const minStateWithApiAuthorityPart = {
@@ -24,23 +25,12 @@ applyAdditionalJestTweaks();
 describe('config', () => {
 	const handlers = [];
 	const server = setupServer(...handlers)
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
 		window.jsdom.reconfigure({ url: 'http://localhost/testuser' });
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test(`Use apiAuthorityPart from config`, async () => {
 		let settingsRequested = false;

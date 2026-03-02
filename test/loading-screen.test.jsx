@@ -5,6 +5,7 @@ import { screen, waitFor } from '@testing-library/react'
 
 import { renderWithProviders } from './utils/render';
 import { MainZotero } from '../src/js/component/main';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import { applyAdditionalJestTweaks } from './utils/common';
 import minState from './fixtures/state/minimal.json';
 
@@ -13,47 +14,38 @@ applyAdditionalJestTweaks();
 describe('Loading Screen', () => {
 	let settingsRequested = false;
 	let collectionsRequestCounter = 0;
-	let server;
 
-	beforeAll(() => {
-		const handlers = [
-			http.get('https://api.zotero.org/users/475425/settings/tagColors', () => {
-				settingsRequested = true;
-				return HttpResponse.json({});
-			}),
-			http.get('https://api.zotero.org/users/475425/collections', async ({ request }) => {
-				// the first request (start is 0) is immediate, subsequent requests are delayed so we get a spinner
-				await delay(Number(new URL(request.url).searchParams.get('start')) > 0 ? 100 : 0);
-				collectionsRequestCounter++;
-				return HttpResponse.json([], {
-					headers: { 'Total-Results': '5142' },
-				});
-			}),
-			http.get('https://api.zotero.org/users/475425/items/top', () => {
-				return HttpResponse.json([], {
-					headers: {
-						'Total-Results': '0',
-					},
-				});
-			}),
-			http.get('https://api.zotero.org/users/475425/items/top/tags', () => {
-				return HttpResponse.json([], {
-					headers: {
-						'Total-Results': '0',
-					},
-				});
-			})
-		];
+	const handlers = [
+		http.get('https://api.zotero.org/users/475425/settings/tagColors', () => {
+			settingsRequested = true;
+			return HttpResponse.json({});
+		}),
+		http.get('https://api.zotero.org/users/475425/collections', async ({ request }) => {
+			// the first request (start is 0) is immediate, subsequent requests are delayed so we get a spinner
+			await delay(Number(new URL(request.url).searchParams.get('start')) > 0 ? 100 : 0);
+			collectionsRequestCounter++;
+			return HttpResponse.json([], {
+				headers: { 'Total-Results': '5142' },
+			});
+		}),
+		http.get('https://api.zotero.org/users/475425/items/top', () => {
+			return HttpResponse.json([], {
+				headers: {
+					'Total-Results': '0',
+				},
+			});
+		}),
+		http.get('https://api.zotero.org/users/475425/items/top/tags', () => {
+			return HttpResponse.json([], {
+				headers: {
+					'Total-Results': '0',
+				},
+			});
+		})
+	];
 
-		server = setupServer(...handlers);
-
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	const server = setupServer(...handlers);
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
@@ -61,10 +53,6 @@ describe('Loading Screen', () => {
 		settingsRequested = false;
 		collectionsRequestCounter = 0;
 	});
-
-	afterEach(() => server.resetHandlers());
-
-	afterAll(() => server.close());
 
 	test('Shows Z while fetching data', async () => {
 		renderWithProviders(<MainZotero />, { preloadedState: minState });

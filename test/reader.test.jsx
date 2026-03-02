@@ -10,6 +10,7 @@ import { renderWithProviders } from './utils/render';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
 import { JSONtoState, getStateWithout } from './utils/state';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import stateRaw from './fixtures/state/desktop-test-user-reader-view.json';
 import parentStateRaw from './fixtures/state/desktop-test-user-reader-parent-item-view.json';
 import newItemAnnotationNote from "./fixtures/response/new-item-annotation-note.json";
@@ -68,23 +69,12 @@ describe('Reader', () => {
 	];
 	const server = setupServer(...handlers)
 	applyAdditionalJestTweaks();
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
 		window.jsdom.reconfigure({ url: 'http://localhost/testuser/items/KBFTPTI4/attachment/N2PJUHD6/reader' });;
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test('Displays reader', async () => {
 		const { container } = renderWithProviders(<MainZotero />, { preloadedState: state });

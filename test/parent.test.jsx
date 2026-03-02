@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event'
 
 import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import { setupStore } from '../src/js/store';
 import { MainZotero } from '../src/js/component/main';
 import { createEmptyParentItems } from '../src/js/actions/parent';
@@ -36,23 +37,12 @@ describe('Create Parent Item', () => {
 	];
 	const server = setupServer(...handlers)
 	applyAdditionalJestTweaks();
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
 		window.jsdom.reconfigure({ url: 'http://localhost/testuser/collections/CSB4KZUU/items/UMPPCXU4' });;
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test('Creates parent item using an identifier', async () => {
 		renderWithProviders(<MainZotero />, { preloadedState: state });
@@ -172,17 +162,7 @@ describe('Create Parent Item', () => {
 describe('createEmptyParentItems chunking', () => {
 	const handlers = [];
 	const server = setupServer(...handlers);
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
+	setupMSWLifecycle(server);
 
 	test('Chunks POST requests when creating parents for more than 50 items', async () => {
 		const itemCount = 55;

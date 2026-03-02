@@ -11,6 +11,7 @@ import { renderWithProviders } from './utils/render';
 import { JSONtoState, getStateWithout } from './utils/state';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import stateLibraryView from './fixtures/state/desktop-test-user-library-view.json';
 import { mockMatchMedia } from './mocks/matchmedia';
 
@@ -20,15 +21,7 @@ applyAdditionalJestTweaks();
 describe('User Type', () => {
 	const handlers = [];
 	const server = setupServer(...handlers)
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
@@ -36,12 +29,9 @@ describe('User Type', () => {
 	});
 
 	afterEach(() => {
-		server.resetHandlers()
 		localStorage.clear();
 		delete window.matchMedia;
 	});
-
-	afterAll(() => server.close());
 
 	test('Switch the user type based on the pointing device used', async () => {
 		renderWithProviders(<MainZotero />, { preloadedState: libraryViewState });

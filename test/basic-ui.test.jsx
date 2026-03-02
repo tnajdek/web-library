@@ -8,6 +8,7 @@ import { renderWithProviders } from './utils/render';
 import { JSONtoState, getPatchedState } from './utils/state';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import stateLibraryView from './fixtures/state/desktop-test-user-library-view.json';
 import testUserSearchResults from './fixtures/response/test-user-search-results.json';
 import testUserSearchResultsTags from './fixtures/response/test-user-search-results-tags.json';
@@ -23,22 +24,11 @@ applyAdditionalJestTweaks();
 describe('Basic UI', () => {
 	const handlers = [];
 	const server = setupServer(...handlers)
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		window.jsdom.reconfigure({ url: 'http://localhost/testuser/library' });
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test('Shows all UI elements', async () => {
 		renderWithProviders(<MainZotero />, { preloadedState: libraryViewState });

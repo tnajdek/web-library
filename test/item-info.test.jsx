@@ -12,6 +12,7 @@ import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import stateRaw from './fixtures/state/desktop-test-user-item-view.json';
 import testUserUpdateDateDMY from './fixtures/response/test-user-update-date-dmy.json';
 import testUserUpdateDateMDY from './fixtures/response/test-user-update-date-mdy.json';
@@ -23,23 +24,12 @@ describe('Item info', () => {
 	const handlers = [];
 	const server = setupServer(...handlers)
 	applyAdditionalJestTweaks();
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
 		window.jsdom.reconfigure({ url: 'http://localhost/testuser/collections/WTTJ2J56/items/VR82JUX8/item-details' });;
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test('Displays fields with accessible names', async () => {
 		renderWithProviders(<MainZotero />, { preloadedState: state });

@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event'
 
 import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import { setupStore } from '../src/js/store';
 import { MainZotero } from '../src/js/component/main';
 import { addRelatedItems } from '../src/js/actions/items-write';
@@ -25,23 +26,12 @@ describe('Item info', () => {
 	const handlers = [];
 	const server = setupServer(...handlers)
 	applyAdditionalJestTweaks();
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
 		window.jsdom.reconfigure({ url: 'http://localhost/testuser/collections/WTTJ2J56/items/VR82JUX8/item-details' });;
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test('Adds a related item', async () => {
 		let relatedItemsFetched = false;
@@ -112,17 +102,7 @@ describe('Item info', () => {
 describe('addRelatedItems chunking', () => {
 	const handlers = [];
 	const server = setupServer(...handlers);
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
+	setupMSWLifecycle(server);
 
 	test('Chunks POST requests when adding more than 50 related items', async () => {
 		const itemCount = 55;

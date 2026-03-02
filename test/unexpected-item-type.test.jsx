@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from './utils/render';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks } from './utils/common';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import minState from './fixtures/state/minimal.json';
 import annotationItems from './fixtures/response/annotation-item.json';
 
@@ -15,15 +16,7 @@ applyAdditionalJestTweaks();
 describe('Unexpected Item Types', () => {
 	const handlers = [];
 	const server = setupServer(...handlers)
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
@@ -44,9 +37,6 @@ describe('Unexpected Item Types', () => {
 			}),
 		);
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test(`Handle unexpected top level annotation`, async () => {
 		let itemsRequested = false;

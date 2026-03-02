@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from './utils/render';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks } from './utils/common';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import minState from './fixtures/state/minimal.json';
 // import searchResults from './fixtures/response/zotero-user-search-results.json';
 // import searchResultsTags from './fixtures/response/zotero-user-search-results-tags.json';
@@ -67,22 +68,11 @@ describe('Unexpected URL', () => {
 		}),
 	];
 	const server = setupServer(...handlers)
-
-	beforeAll(() => {
-		server.listen({
-			onUnhandledRequest: (req) => {
-				// https://github.com/mswjs/msw/issues/946#issuecomment-1202959063
-				test(`${req.method} ${req.url} is not handled`, () => { });
-			},
-		});
-	});
+	setupMSWLifecycle(server);
 
 	beforeEach(() => {
 		delete window.location;
 	});
-
-	afterEach(() => server.resetHandlers());
-	afterAll(() => server.close());
 
 	test(`Should redirect if URL contains invalid collection key`, async () => {
 		const pushStateSpy = jest.spyOn(window.history, "pushState");

@@ -9,11 +9,12 @@ import { findByText, getByRole, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event'
 import fileSaver from 'file-saver';
 
-import { installMockedXHR, uninstallMockedXHR, installUnhandledRequestHandler } from './utils/xhr-mock';
+import { installMockedXHR, uninstallMockedXHR } from './utils/xhr-mock';
 import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
 import { MainZotero } from '../src/js/component/main';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
+import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import stateRaw from './fixtures/state/desktop-test-user-search-selected.json';
 import modernLanguageAssociationStyle from './fixtures/modern-language-association.csl.js';
 import turabianNotesStyle from './fixtures/turabian-notes-bibliography.csl.js';
@@ -33,9 +34,9 @@ jest.mock('file-saver');
 describe('Test User: Export, bibliography, citations, subscribe to feed', () => {
 	const handlers = [];
 	const server = setupServer(...handlers)
+	setupMSWLifecycle(server);
 
 	beforeAll(() => {
-		installUnhandledRequestHandler(server);
 		installMockedXHR();
 	});
 
@@ -65,11 +66,8 @@ describe('Test User: Export, bibliography, citations, subscribe to feed', () => 
 		);
 	});
 
-	afterEach(() => server.resetHandlers());
-
 	afterAll(() => {
 		uninstallMockedXHR();
-		server.close();
 	});
 
 	test('Export item using toolbar button', async () => {
