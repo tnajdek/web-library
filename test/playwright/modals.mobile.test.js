@@ -45,6 +45,40 @@ test.describe('Mobile Modals', () => {
 		await page.close();
 	});
 
+	test('should focus input in Rename Collection modal', async ({ page, serverPort }) => {
+		server = await loadFixtureState('mobile-test-user-library-view', serverPort, page);
+
+		// Open the "More" dropdown on the "AI" collection.
+		// force: true -- on iPad the expanded "Dogs" subcollection list visually
+		// overlaps sibling tree items.
+		const aiTreeItem = page.getByRole('treeitem', { name: 'AI' });
+		await expect(aiTreeItem).toBeVisible();
+		const moreButton = aiTreeItem.getByTitle('More');
+		await moreButton.tap({ force: true });
+
+		const menuItem = page.getByRole('menuitem', { name: 'Rename' });
+		await expect(menuItem).toBeVisible();
+		await menuItem.tap();
+
+		// Wait for the modal to appear and settle
+		const modal = page.getByRole('dialog', { name: 'Rename Collection' });
+		await expect(modal).toBeVisible();
+		await page.waitForFunction(() =>
+			document.querySelector('[aria-label="Rename Collection"]')?.classList.contains('ReactModal__Content--after-open')
+		);
+
+		// Wait for the slide transition to complete (500ms CSS transition)
+		// The focusOnModalOpen utility waits for transitionend, so we just need
+		// to wait long enough for the transition + focus to settle
+		await page.waitForTimeout(600);
+
+		// Verify that focus is placed on the input
+		const input = modal.getByRole('textbox');
+		await expect(input).toBeFocused();
+
+		await page.close();
+	});
+
 	test('should open Change Parent Item modal without changing view', async ({ page, serverPort }) => {
 		const customHandler = makeCustomHandler('/api/users/1/collections/CSB4KZUU/items/top', itemsInCollectionAlgorithms);
 		server = await loadFixtureState('mobile-test-user-item-details-view-edit', serverPort, page, customHandler);

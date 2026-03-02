@@ -5,6 +5,7 @@ import { Button, Icon } from 'web-common/components';
 import Input from '../form/input';
 import Modal from '../ui/modal';
 import { COLLECTION_RENAME } from '../../constants/modals';
+import { focusOnModalOpen } from '../../common/modal-focus';
 import { getUniqueId } from '../../utils';
 import { makeChildMap } from '../../common/collection';
 import { toggleModal, updateCollection } from '../../actions';
@@ -23,6 +24,7 @@ const RenameCollectionModal = () => {
 	const isTouchOrSmall = useSelector(state => state.device.isTouchOrSmall);
 	const [name, setName] = useState('');
 	const inputId = useRef(getUniqueId());
+	const inputRef = useRef(null);
 	const isValid = name.length > 0 && name !== (collection && collection.name);
 
 	const handleCollectionUpdate = useCallback(() => {
@@ -36,6 +38,12 @@ const RenameCollectionModal = () => {
 	const handleInputBlur = useCallback(() => true, []);
 	const handleChange = useCallback(newName => setName(newName), []);
 	const handleCancel = useCallback(() => dispatch(toggleModal(COLLECTION_RENAME, false)), [dispatch]);
+
+	const handleAfterOpen = useCallback(({ contentEl }) => {
+		focusOnModalOpen(contentEl, isTouchOrSmall, () => {
+			inputRef.current?.focus({ preventScroll: true });
+		});
+	}, [isTouchOrSmall]);
 	const childMap = useMemo(() => makeChildMap(collections.length ? collections : []), [collections]);
 	const hasSubCollections = collectionKey in childMap;
 
@@ -57,8 +65,9 @@ const RenameCollectionModal = () => {
 	return (
 		<Modal
 			className="modal-touch"
-			contentLabel="Collection Editor"
+			contentLabel="Rename Collection"
 			isOpen={ isOpen }
+			onAfterOpen={ handleAfterOpen }
 			onRequestClose={ handleCancel }
 			overlayClassName="modal-centered modal-slide"
 		>
@@ -93,7 +102,7 @@ const RenameCollectionModal = () => {
 							<Icon type={ hasSubCollections ? '28/folders' : '28/folder' } width="28" height="28" />
 						</label>
 						<Input
-							autoFocus
+							ref={ inputRef }
 							id={ inputId.current }
 							onBlur={ handleInputBlur }
 							onChange={ handleChange }
