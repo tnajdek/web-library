@@ -114,6 +114,70 @@ test.describe('Mobile Modals', () => {
 		await page.close();
 	});
 
+	test('should navigate to Libraries in Change Parent Item modal without crashing', async ({ page, serverPort }) => {
+		const handlers = [
+			makeCustomHandler('/api/users/1/collections/CSB4KZUU/items/top', itemsInCollectionAlgorithms),
+			makeCustomHandler('/api/users/1/items/top', [], { totalResults: 0 }),
+		];
+		server = await loadFixtureState('mobile-test-user-item-details-view-edit', serverPort, page, handlers);
+
+		// Listen for page errors to detect the crash
+		const errors = [];
+		page.on('pageerror', error => errors.push(error));
+
+		// Open the Change Parent Item modal
+		const fullText = page.getByRole('listitem', { name: 'Full Text' });
+		await expect(fullText).toBeVisible();
+		const optionsButton = fullText.getByRole('button', { name: 'Attachment Options' });
+		await optionsButton.tap();
+
+		const menuItem = page.getByRole('menuitem', { name: 'Change Parent Item' });
+		await expect(menuItem).toBeVisible();
+		await menuItem.tap();
+
+		// Wait for the modal to appear and settle
+		const modal = page.getByRole('dialog', { name: 'Change Parent Item' });
+		await expect(modal).toBeVisible();
+		await page.waitForFunction(() =>
+			document.querySelector('.change-parent-item-modal')?.classList.contains('ReactModal__Content--after-open')
+		);
+		await page.waitForTimeout(600);
+
+		// Navigate back through the touch header breadcrumbs to the "Libraries" level
+		const pickerNav = modal.getByRole('navigation', { name: 'Picker' });
+		await expect(pickerNav).toBeVisible();
+
+		// Step back from "All Items" to "Algorithms"
+		const algorithmsBreadcrumb = pickerNav.locator('.previous .truncate', { hasText: 'Algorithms' });
+		await expect(algorithmsBreadcrumb).toBeVisible();
+		await algorithmsBreadcrumb.tap();
+		await page.waitForTimeout(300);
+
+		// Step back from "Algorithms" to "My Library"
+		const myLibraryBreadcrumb = pickerNav.locator('.previous .truncate', { hasText: 'My Library' });
+		await expect(myLibraryBreadcrumb).toBeVisible();
+		await myLibraryBreadcrumb.tap();
+		await page.waitForTimeout(300);
+
+		// Step back from "My Library" to "Libraries" -- this triggered the crash
+		const librariesBreadcrumb = pickerNav.locator('.previous .truncate', { hasText: 'Libraries' });
+		await expect(librariesBreadcrumb).toBeVisible();
+		await librariesBreadcrumb.tap();
+		await page.waitForTimeout(300);
+
+		// The modal should still be visible (no crash)
+		await expect(modal).toBeVisible();
+
+		// Verify the Libraries view is showing
+		const myLibraryTreeItem = modal.getByRole('treeitem', { name: 'My Library' });
+		await expect(myLibraryTreeItem).toBeVisible();
+
+		// Verify no page errors occurred
+		expect(errors).toHaveLength(0);
+
+		await page.close();
+	});
+
 	test('Scrolling tag list closes open dot menu dropdown', async ({ page, serverPort }) => {
 		const handlers = [
 			makeCustomHandler('/api/users/1/tags', testUserManageTags, { totalResults: testUserManageTags.length }),
