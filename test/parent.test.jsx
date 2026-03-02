@@ -10,7 +10,9 @@ import userEvent from '@testing-library/user-event'
 
 import { renderWithProviders } from './utils/render';
 import { JSONtoState } from './utils/state';
+import { setupStore } from '../src/js/store';
 import { MainZotero } from '../src/js/component/main';
+import { createEmptyParentItems } from '../src/js/actions/parent';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
 import stateRaw from './fixtures/state/desktop-test-user-top-level-attachment-view.json';
 import searchByIdentifier from './fixtures/response/search-by-identifier-recognize.json';
@@ -164,5 +166,121 @@ describe('Create Parent Item', () => {
 
 		expect(hasCreatedParentItem).toBe(true);
 		expect(hasPatchedAttachmentItem).toBe(true);
+	});
+});
+
+describe('createEmptyParentItems chunking', () => {
+	const handlers = [];
+	const server = setupServer(...handlers);
+
+	beforeAll(() => {
+		server.listen({
+			onUnhandledRequest: (req) => {
+				test(`${req.method} ${req.url} is not handled`, () => { });
+			},
+		});
+	});
+
+	afterEach(() => server.resetHandlers());
+	afterAll(() => server.close());
+
+	test('Chunks POST requests when creating parents for more than 50 items', async () => {
+		const itemCount = 55;
+		const itemKeys = [];
+		const extraItems = {};
+
+		// -- Create 55 top-level attachment items in state
+		for (let i = 0; i < itemCount; i++) {
+			const key = `PRNT${String(i).padStart(4, '0')}`;
+			itemKeys.push(key);
+			extraItems[key] = {
+				key,
+				version: 1,
+				itemType: 'attachment',
+				linkMode: 'imported_file',
+				title: `file-${i}.pdf`,
+				filename: `file-${i}.pdf`,
+				contentType: 'application/pdf',
+				collections: ['CSB4KZUU'],
+				parentItem: false,
+				tags: [],
+				relations: {},
+				[Symbol.for('meta')]: {},
+				[Symbol.for('links')]: {},
+			};
+		}
+
+		const testState = JSONtoState(stateRaw);
+		// -- items is an alias for dataObjects in the libraries reducer,
+		// -- so we must add to both for the state to survive reducer runs
+		Object.assign(testState.libraries.u1.items, extraItems);
+		Object.assign(testState.libraries.u1.dataObjects, extraItems);
+
+		const postRequests = [];
+		let version = testState.libraries.u1.sync.version;
+		let createdKeyCounter = 0;
+
+		server.use(
+			http.post('https://api.zotero.org/users/1/items', async ({ request }) => {
+				const items = await request.json();
+				postRequests.push(items);
+
+				const successful = {};
+				const success = {};
+				items.forEach((item, index) => {
+					const idx = String(index);
+					if (item.key) {
+						// -- updateMultipleItems: item already has a key
+						success[idx] = item.key;
+						successful[idx] = {
+							key: item.key,
+							version: ++version,
+							library: { type: 'user', id: 1, name: 'testuser', links: {} },
+							links: {},
+							meta: {},
+							data: { ...item, version },
+						};
+					} else {
+						// -- createItems: new item without a key
+						const newKey = `NEWP${String(createdKeyCounter++).padStart(4, '0')}`;
+						success[idx] = newKey;
+						successful[idx] = {
+							key: newKey,
+							version: ++version,
+							library: { type: 'user', id: 1, name: 'testuser', links: {} },
+							links: {},
+							meta: { numChildren: 0 },
+							data: { ...item, key: newKey, version, tags: item.tags || [] },
+						};
+					}
+				});
+
+				return HttpResponse.json(
+					{ successful, success, unchanged: {}, failed: {} },
+					{ headers: { 'Last-Modified-Version': String(version) } }
+				);
+			}),
+		);
+
+		const store = setupStore(testState);
+		await store.dispatch(createEmptyParentItems(itemKeys, 'u1'));
+
+		// -- 55 items chunked into batches of 50:
+		// -- 2 createItems POSTs (50 + 5), then 2 updateMultipleItems POSTs (50 + 5)
+		expect(postRequests).toHaveLength(4);
+
+		// -- First two are createItems (no 'key' on items)
+		expect(postRequests[0]).toHaveLength(50);
+		expect(postRequests[0][0].key).toBeUndefined();
+		expect(postRequests[1]).toHaveLength(5);
+		expect(postRequests[1][0].key).toBeUndefined();
+
+		// -- Last two are updateMultipleItems (items have 'key' and 'parentItem')
+		expect(postRequests[2]).toHaveLength(50);
+		expect(postRequests[2][0].key).toBeDefined();
+		expect(postRequests[2][0].parentItem).toBeDefined();
+		expect(postRequests[3]).toHaveLength(5);
+		expect(postRequests[3][0].key).toBeDefined();
+		expect(postRequests[3][0].parentItem).toBeDefined();
 	});
 });

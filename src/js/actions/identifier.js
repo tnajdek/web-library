@@ -182,22 +182,8 @@ const currentAddMultipleTranslatedItems = identifiers => {
 					}
 					return 0;
 				});
-				// split translatedItems into batches of 50
-				const batches = translatedItems.reduce((acc, item, index) => {
-					const batchIndex = Math.floor(index / 50);
-					if(!acc[batchIndex]) {
-						acc[batchIndex] = [];
-					}
-					acc[batchIndex].push(item);
-					return acc;
-				}, []);
-				const rootItemKeys = [];
-
-				for(const batch of batches) {
-					const data = await dispatch(createItems(batch, libraryKey));
-					const batchRootItemKeys = data.filter(d => !d.parentItem).map(d => d.key);
-					rootItemKeys.push(...batchRootItemKeys);
-				}
+				const data = await dispatch(createItems(translatedItems, libraryKey));
+				const rootItemKeys = data.filter(d => !d.parentItem).map(d => d.key);
 
 				dispatch(navigate({
 					library: libraryKey,

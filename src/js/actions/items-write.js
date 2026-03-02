@@ -114,21 +114,28 @@ const postItemsMultiPatch = async (state, multiPatch, libraryKey = null) => {
 const createItems = (items, libraryKey = null) => {
 	return async (dispatch, getState) => {
 		libraryKey = libraryKey ?? getState().current.libraryKey;
-		const id = requestTracker.id++;
+		const chunkSize = 50;
+		const allResults = [];
 
-		dispatch({
-			type: PRE_CREATE_ITEMS,
-			libraryKey,
-			items,
-			id
-		});
+		for (let i = 0; i < items.length; i += chunkSize) {
+			const chunk = items.slice(i, i + chunkSize);
+			const id = requestTracker.id++;
 
-		const promise = new Promise((resolve, reject) => {
-			dispatch(
-				queueCreateItems(items, libraryKey, id, resolve, reject)
-			);
-		});
-		return promise;
+			dispatch({
+				type: PRE_CREATE_ITEMS,
+				libraryKey,
+				items: chunk,
+				id
+			});
+
+			const chunkResult = await new Promise((resolve, reject) => {
+				dispatch(
+					queueCreateItems(chunk, libraryKey, id, resolve, reject)
+				);
+			});
+			allResults.push(...chunkResult);
+		}
+		return allResults;
 	};
 }
 
@@ -446,22 +453,31 @@ const queueUpdateItem = (itemKey, patch, libraryKey, { resolve, reject, id }) =>
 const updateMultipleItems = (multiPatch, libraryKey = null) => {
 	return async (dispatch, getState) => {
 		libraryKey = libraryKey ?? getState().current.libraryKey;
-		const id = requestTracker.id++;
+		const chunkSize = 50;
+		const allItems = [];
+		const allItemKeys = [];
 
-		dispatch({
-			type: PRE_UPDATE_MULTIPLE_ITEMS,
-			libraryKey,
-			multiPatch,
-			id
-		});
+		for (let i = 0; i < multiPatch.length; i += chunkSize) {
+			const chunk = multiPatch.slice(i, i + chunkSize);
+			const id = requestTracker.id++;
 
-		const promise = new Promise((resolve, reject) => {
-			dispatch(
-				queueUpdateMultipleItems(multiPatch, libraryKey, id, resolve, reject)
-			);
-		});
+			dispatch({
+				type: PRE_UPDATE_MULTIPLE_ITEMS,
+				libraryKey,
+				multiPatch: chunk,
+				id
+			});
 
-		return promise;
+			const result = await new Promise((resolve, reject) => {
+				dispatch(
+					queueUpdateMultipleItems(chunk, libraryKey, id, resolve, reject)
+				);
+			});
+			allItems.push(...result.items);
+			allItemKeys.push(...result.itemKeys);
+		}
+
+		return { items: allItems, itemKeys: allItemKeys };
 	};
 }
 
@@ -1412,13 +1428,7 @@ const addRelatedItems = (itemKey, relatedItemKeys) => {
 			{ key: itemKey, relations: newRelations },
 		];
 
-		const chunkSize = 50;
-		const results = [];
-		for (let i = 0; i < multiItemPatch.length; i += chunkSize) {
-			const chunk = multiItemPatch.slice(i, i + chunkSize);
-			results.push(await dispatch(updateMultipleItems(chunk, libraryKey)));
-		}
-		return results;
+		return await dispatch(updateMultipleItems(multiItemPatch, libraryKey));
 	};
 }
 
