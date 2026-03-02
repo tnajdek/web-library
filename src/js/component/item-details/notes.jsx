@@ -68,6 +68,7 @@ const Note = memo(props => {
 		// Hide dropdown immediately to prevent focus theft from modal input
 		// (instead of relying on DropdownItem's default handler)
 		ev.preventDefault();
+		ev.stopPropagation();
 		setModalFocusRestore(toggleRef.current);
 		setDropdownOpen(false);
 		dispatch(toggleModal(CHANGE_PARENT_ITEM, true, { keys: [note.key] }));

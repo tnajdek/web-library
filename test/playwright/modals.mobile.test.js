@@ -114,6 +114,42 @@ test.describe('Mobile Modals', () => {
 		await page.close();
 	});
 
+	test('should open Change Parent Item modal for a note without changing view', async ({ page, serverPort }) => {
+		const customHandler = makeCustomHandler('/api/users/1/collections/CSB4KZUU/items/top', itemsInCollectionAlgorithms);
+		server = await loadFixtureState('mobile-test-user-item-with-notes-edit', serverPort, page, customHandler);
+
+		const urlBefore = page.url();
+
+		const noteItem = page.locator('[data-key="WEH38V9X"]');
+		await noteItem.scrollIntoViewIfNeeded();
+		await expect(noteItem).toBeVisible();
+		const optionsButton = noteItem.getByRole('button', { name: 'Note Options' });
+		await optionsButton.tap();
+
+		const menuItem = page.getByRole('menuitem', { name: 'Change Parent Item' });
+		await expect(menuItem).toBeVisible();
+		await menuItem.tap();
+
+		// Wait for the modal to appear and settle
+		const modal = page.getByRole('dialog', { name: 'Change Parent Item' });
+		await expect(modal).toBeVisible();
+		await page.waitForFunction(() =>
+			document.querySelector('.change-parent-item-modal')?.classList.contains('ReactModal__Content--after-open')
+		);
+
+		// Wait for the slide transition to complete
+		await page.waitForTimeout(600);
+
+		// The modal should still be visible
+		await expect(modal).toBeVisible();
+
+		// The URL should not have changed -- opening the modal should not navigate
+		// to the note details view
+		expect(page.url()).toBe(urlBefore);
+
+		await page.close();
+	});
+
 	test('should navigate to Libraries in Change Parent Item modal without crashing', async ({ page, serverPort }) => {
 		const handlers = [
 			makeCustomHandler('/api/users/1/collections/CSB4KZUU/items/top', itemsInCollectionAlgorithms),

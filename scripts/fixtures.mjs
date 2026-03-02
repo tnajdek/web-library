@@ -19,6 +19,7 @@ export const fixtures = [
 	[`testuser/collections/CSB4KZUU/items/ZKT5WURW`, 'desktop-test-user-top-level-attachment-view-2'],
 	[`testuser/collections/CSB4KZUU/items/3JCLFUG4/item-details`, 'mobile-test-user-item-details-view'],
 	[`testuser/collections/CSB4KZUU/items/3JCLFUG4/item-details`, 'mobile-test-user-item-details-view-edit', clickEditBtn],
+	['testuser/collections/CSB4KZUU/items/EHCBC9UR/item-details', 'mobile-test-user-item-with-notes-edit', clickEditBtn],
 	[`testuser/collections/WTTJ2J56/item-list`, 'mobile-test-user-item-list-view'],
 	[`testuser/trash/items/Z7B4P73I/item-details`, 'mobile-test-user-trash-collection-details-view'],
 	[`testuser/library`, 'mobile-test-user-library-view'],
