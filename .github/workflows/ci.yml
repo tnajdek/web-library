@@ -11,7 +11,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/jod'
+          node-version: 'lts/krypton'
       - run: npm ci
       - run: npm run build:tests
       - run: npm run test:jest
@@ -31,7 +31,7 @@ jobs:
       - name: Install Node
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/jod'
+          node-version: 'lts/krypton'
       - run: npm ci
       - run: npm run build:tests
       - run: npx playwright test
