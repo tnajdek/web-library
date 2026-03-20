@@ -160,7 +160,7 @@ const ManageTagsModal = () => {
 				</div>
 			</div>
 			<div className="modal-body">
-				<div className="tag-manager-list-container">
+				<div className="tag-manager-container">
 					<div className="filter-container">
 						<div className="search input-group">
 							<input
