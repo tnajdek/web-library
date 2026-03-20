@@ -1,11 +1,9 @@
 import PropTypes from 'prop-types';
 import { Fragment, memo, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button, Icon } from 'web-common/components';
+import { Button, Icon, MenuEntry } from 'web-common/components';
 import { useFocusManager } from 'web-common/hooks';
 import { isTriggerEvent } from 'web-common/utils';
-
-import MenuEntry from './menu-entry';
 import MainSearch from './../../component/main-search';
 import { SETTINGS } from '../../constants/modals';
 import { currentTriggerSearchMode, toggleModal,

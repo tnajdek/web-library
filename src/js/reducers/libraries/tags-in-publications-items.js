@@ -1,4 +1,4 @@
-import deepEqual from 'deep-equal';
+import deepEqual from 'fast-deep-equal';
 import { omit } from 'web-common/utils';
 
 import { DROP_COLORED_TAGS_IN_PUBLICATIONS_ITEMS, DROP_TAGS_IN_PUBLICATIONS_ITEMS,

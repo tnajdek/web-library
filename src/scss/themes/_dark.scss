@@ -63,7 +63,7 @@ $-colors: (
 	color-shade-2: #333,
 	color-shade-3: #444,
 	color-shade-4: #555,
-	color-shade-5: #777,
+	color-shade-5: #ls,
 	color-shade-6: #8c8c8c,
 	color-shade-7: #aaa,
 	color-shade-8: #ccc,
@@ -92,8 +92,6 @@ $-colors: (
 	primary-on-shade-1: #e3e3e3,
 	color-nav-sidebar: #111,
 	color-nav-sidebar-link: #fff,
-
-	select-chevron-icon: asset-url.image-url("icons/chevron-7-777.svg")
 );
 
 :root[data-color-scheme="dark"] {

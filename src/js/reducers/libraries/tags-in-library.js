@@ -1,4 +1,4 @@
-import deepEqual from 'deep-equal';
+import deepEqual from 'fast-deep-equal';
 import { omit } from 'web-common/utils';
 
 import { DROP_TAGS_IN_LIBRARY, ERROR_TAGS_IN_LIBRARY, RECEIVE_ADD_TAGS_TO_ITEMS,

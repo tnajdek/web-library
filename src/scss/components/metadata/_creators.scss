@@ -146,7 +146,7 @@
 				}
 
 				.select-arrow {
-					background-image: asset-url.image-url("icons/chevron-7-777.svg");
+					color: var(--color-shade-6);
 					display: none;
 
 					@include selectors.state(".creators-entry:hover") {
@@ -156,12 +156,12 @@
 					}
 
 					@include selectors.state(".select-component:hover") {
-						background-image: asset-url.image-url("icons/chevron-7-secondary.svg");
+						color: var(--accent-blue);
 					}
 
 					@include selectors.state(".select-component.is-focused") {
 						display: block;
-						background-image: asset-url.image-url("icons/chevron-7-secondary.svg");
+						color: var(--accent-blue);
 					}
 				}
 

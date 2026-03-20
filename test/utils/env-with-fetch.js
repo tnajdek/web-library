@@ -5,10 +5,23 @@ class FetchEnvironment extends TestEnvironment {
 	constructor(...args) {
 		super(...args);
 
+		// Node's fetch/Response create objects (arrays, plain objects) using Node's
+		// built-in constructors, which are different objects from jsdom's constructors.
+		// This causes constructor-identity checks (e.g., fast-deep-equal's
+		// `a.constructor !== b.constructor`) to fail for structurally identical data.
+		// Wrapping Response.json() to re-parse in the jsdom realm ensures all parsed
+		// data uses the same constructors as application code running in jsdom.
+		const jsdomParse = this.global.JSON.parse;
+		const NodeResponse = Response;
+		this.global.Response = class extends NodeResponse {
+			async json() {
+				return jsdomParse(await super.text());
+			}
+		};
+
 		this.global.fetch = fetch;
 		this.global.Headers = Headers;
 		this.global.Request = Request;
-		this.global.Response = Response;
 		this.global.AbortController = AbortController;
 		this.global.AbortSignal = AbortSignal;
 		this.global.TransformStream = TransformStream;

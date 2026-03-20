@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { memo, useEffect, useCallback, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import deepEqual from 'deep-equal';
+import deepEqual from 'fast-deep-equal';
 import { Button, Icon } from 'web-common/components';
 import { useFocusManager, usePrevious } from 'web-common/hooks';
 import { isTriggerEvent, noop, pick } from 'web-common/utils';

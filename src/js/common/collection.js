@@ -1,5 +1,5 @@
 import memoize from 'memoize-one';
-import deepEqual from 'deep-equal';
+import deepEqual from 'fast-deep-equal';
 
 const _makeChildMap = collections => {
 	return collections.reduce((aggr, col) => {

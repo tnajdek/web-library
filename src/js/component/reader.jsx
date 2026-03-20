@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { useDebouncedCallback } from 'use-debounce';
-import deepEqual from 'deep-equal';
+import deepEqual from 'fast-deep-equal';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { usePrevious } from 'web-common/hooks';
 import { pick, noop } from 'web-common/utils';

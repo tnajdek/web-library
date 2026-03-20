@@ -3,7 +3,7 @@ import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } fro
 import { pick } from 'web-common/utils';
 import { useDispatch, useSelector } from 'react-redux';
 
-import deepEqual from 'deep-equal';
+import deepEqual from 'fast-deep-equal';
 import FocusTrap from '../focus-trap';
 import Libraries from '../libraries';
 import Modal from '../ui/modal';
