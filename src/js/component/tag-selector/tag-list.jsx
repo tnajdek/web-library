@@ -249,7 +249,6 @@ const TagList = forwardRef(({toggleTag = noop, isManager = false, ...rest}, ref)
 	const [isBusy] = useDebounce(!hasChecked || (isFetching && isFilteringOrHideAutomatic), 100);
 
 	const [dotMenuFor, setDotMenuFor] = useState(null);
-	const scrollContainerRef = useRef(null);
 	const pendingFocusRef = useRef(null);
 	const itemCountRef = useRef(0);
 
@@ -423,17 +422,17 @@ const TagList = forwardRef(({toggleTag = noop, isManager = false, ...rest}, ref)
 		if (dotMenuFor === null) {
 			return;
 		}
-		const scrollContainer = scrollContainerRef.current;
-		if (!scrollContainer) {
+
+		if (!rwListRef?.current) {
 			return;
 		}
 		const handleScroll = () => setDotMenuFor(null);
-		scrollContainer.addEventListener('scroll', handleScroll, {passive: true, capture: true});
-		return () => scrollContainer.removeEventListener('scroll', handleScroll, {capture: true});
+		rwListRef.current.element.addEventListener('scroll', handleScroll, {passive: true, capture: true});
+		return () => rwListRef.current?.element?.removeEventListener('scroll', handleScroll, {capture: true});
 	}, [dotMenuFor]);
 
 	return (
-		<div className="scroll-container" ref={scrollContainerRef}>
+		<div className="tag-selector-list-container">
 			{!isBusy ? (
 				<AutoSizer renderProp={({height, width}) => {
 					if (typeof width === 'undefined' || typeof height === 'undefined') {

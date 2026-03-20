@@ -26,7 +26,7 @@
 
 }
 
-.touch-tag-selector, .tag-manager-list-container {
+.touch-tag-selector, .tag-manager-container {
 	.touch-header {
 		@include breakpoints.bp-down(xs) {
 			padding-top: 0;

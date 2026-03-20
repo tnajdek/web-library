@@ -9,10 +9,16 @@
 		display: flex;
 	}
 
-	.tag-manager-list-container {
+	.tag-selector-list-container {
+		display: flex;
+		flex: 1 1 auto;
+	}
+
+	.tag-manager-container {
 		flex-direction: column;
 		display: flex;
 		flex: 1 1 auto;
+		min-width: 0;
 	}
 
 	.tag-color-manager {
