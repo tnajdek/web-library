@@ -180,10 +180,12 @@
 
 	@include breakpoints.mouse-and-bp-only(md) {
 		flex: 0 0 50%;
+		min-height: 0;
 	}
 
 	@include breakpoints.bp-up-normalized(lg) {
 		flex: 1 1 auto;
+		min-width: 0;
 	}
 
 	.view-item-details-active & {
