@@ -12,6 +12,7 @@ export const websiteUrl = 'https://www.zotero.org/';
 export const forumsUrl = 'https://forums.zotero.org/';
 export const buyStorageUrl = websiteUrl + 'storage?ref=usb';
 export const stylesSourceUrl = 'https://www.zotero.org/styles-files/styles.json';
+export const stylesBaseUrl = 'https://www.zotero.org/styles/';
 export const streamingApiUrl = 'wss://stream.zotero.org/';
 export const translateUrl = 'location' in window ? window.location.origin : '';
 export const recognizerUrl = 'location' in window ? window.location.origin : '';

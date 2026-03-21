@@ -1,6 +1,6 @@
-import { getServer, closeServer } from '../utils/fixed-state-server.js';
+import { closeServer, loadFixtureState } from '../utils/fixed-state-server.js';
 import { test, expect } from '../utils/playwright-fixtures.js';
-import { waitForLoad, wait, isSingleColumn } from '../utils/common.js';
+import { wait, isSingleColumn } from '../utils/common.js';
 
 test.describe('Mobile Snapshots', () => {
 	let server;
@@ -10,9 +10,7 @@ test.describe('Mobile Snapshots', () => {
 	});
 
 	test(`should render a list of items`, async ({ page, serverPort }) => {
-		server = await getServer('mobile-test-user-item-list-view', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/WTTJ2J56/item-list`);
-		await waitForLoad(page);
+		server = await loadFixtureState('mobile-test-user-item-list-view', serverPort, page);
 		const itemsList = page.getByRole('list', { name: 'items' });
 		await expect(itemsList.getByRole('listitem')).toHaveCount(7);
 		await wait(500); // avoid flaky screenshot with missing icons
@@ -32,9 +30,7 @@ test.describe('Mobile Snapshots', () => {
 	});
 
 	test('should render item details', async ({ page, serverPort }) => {
-		server = await getServer('mobile-test-user-item-details-view', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/CSB4KZUU/items/3JCLFUG4/item-details`);
-		await waitForLoad(page);
+		server = await loadFixtureState('mobile-test-user-item-details-view', serverPort, page);
 		await expect(await page.getByRole('heading', { name: 'Cooperative pathfinding' })).toBeVisible();
 		await wait(500); // avoid flaky screenshot with missing icons
 		await expect(page).toHaveScreenshot(`mobile-item-details.png`);
@@ -42,9 +38,7 @@ test.describe('Mobile Snapshots', () => {
 	});
 
 	test('should render collection in trash', async ({ page, serverPort }) => {
-		server = await getServer('mobile-test-user-trash-collection-details-view', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/trash/items/Z7B4P73I/item-details`);
-		await waitForLoad(page);
+		server = await loadFixtureState('mobile-test-user-trash-collection-details-view', serverPort, page);
 
 		if (isSingleColumn(test.info())) {
 			await page.getByRole('button', { name: 'Collection Trash Options' }).tap();

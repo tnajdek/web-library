@@ -1,6 +1,6 @@
-import { getServer, closeServer, makeCustomHandler } from '../utils/fixed-state-server.js';
+import { closeServer, loadFixtureState, makeCustomHandler } from '../utils/fixed-state-server.js';
 import { test, expect } from '../utils/playwright-fixtures.js';
-import { waitForLoad, wait, isSingleColumn } from '../utils/common.js';
+import { wait, isSingleColumn } from '../utils/common.js';
 import itemsInCollectionAlgorithms from '../fixtures/response/test-user-get-items-in-collection-algorithms.json' assert { type: 'json' };
 import testUserManageTags from '../fixtures/response/test-user-manage-tags.json' assert { type: 'json' };
 
@@ -14,9 +14,7 @@ test.describe('Mobile Modal Snapshots', () => {
 	test('should render tag manager dot menu dropdown', async ({ page, serverPort }) => {
 		const tagsHandler = makeCustomHandler('/api/users/1/tags', testUserManageTags, { totalResults: 8 });
 		const handler = makeCustomHandler('/api/users/1/collections/WTTJ2J56/items/top/tags', [], { totalResults: 0 } );
-		server = await getServer('mobile-test-user-item-list-view', serverPort, [tagsHandler, handler]);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/WTTJ2J56/item-list`);
-		await waitForLoad(page);
+		server = await loadFixtureState('mobile-test-user-item-list-view', serverPort, page, [tagsHandler, handler]);
 
 		if (isSingleColumn(test.info())) {
 			await page.getByRole('button', { name: 'Toggle tag selector' }).tap();
@@ -45,10 +43,7 @@ test.describe('Mobile Modal Snapshots', () => {
 	test('should render "Add Related" modal', async ({ page, serverPort }) => {
 		expect(itemsInCollectionAlgorithms.length).toBe(23);
 		const customHandler = makeCustomHandler('/api/users/1/collections/CSB4KZUU/items/top', itemsInCollectionAlgorithms);
-		server = await getServer('mobile-test-user-item-details-view-edit', serverPort, customHandler);
-
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/CSB4KZUU/items/3JCLFUG4/item-details`);
-		await waitForLoad(page);
+		server = await loadFixtureState('mobile-test-user-item-details-view-edit', serverPort, page, customHandler);
 
 		const addRelatedButton = await page.getByRole('button', { name: 'Add Related Item' });
 		await addRelatedButton.tap();

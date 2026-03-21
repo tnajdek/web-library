@@ -1,6 +1,6 @@
-import { getServer, closeServer } from '../utils/fixed-state-server.js';
+import { closeServer, loadFixtureState } from '../utils/fixed-state-server.js';
 import { test, expect } from '../utils/playwright-fixtures.js';
-import { wait, waitForLoad } from '../utils/common.js';
+import { wait } from '../utils/common.js';
 
 test.describe('Desktop Snapshots', () => {
 	let server;
@@ -10,10 +10,7 @@ test.describe('Desktop Snapshots', () => {
 	});
 
 	test(`should render a list of items"`, async ({ page, serverPort }) => {
-		server = await getServer('desktop-test-user-item-view', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/WTTJ2J56/items/VR82JUX8/item-details`);
-		await waitForLoad(page);
-		await page.waitForLoadState('networkidle');
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
 		const itemsList = await page.getByRole('grid', { name: 'items' });
 		expect(await itemsList.getByRole('row').count()).toBe(8); // 7 items + header row
 		await wait(500); // avoid flaky screenshot with missing icons
@@ -22,10 +19,7 @@ test.describe('Desktop Snapshots', () => {
 	});
 
 	test('should render selected collection with focused More button', async ({ page, serverPort }) => {
-		server = await getServer('desktop-test-user-item-view', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/WTTJ2J56/items/VR82JUX8/item-details`);
-		await waitForLoad(page);
-		await page.waitForLoadState('networkidle');
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
 		// Tab to activate keyboard mode and focus the collection tree
 		await page.keyboard.press('Tab');
 		// Navigate down to the collection "Dogs" (selected)
@@ -48,10 +42,7 @@ test.describe('Desktop Snapshots', () => {
 	});
 
 	test('should render note with dropdown focused and opened', async ({ page, serverPort }) => {
-		server = await getServer('desktop-test-user-note-view', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/CSB4KZUU/items/BLVYJQMH/note/GNVWD3U4`);
-		await waitForLoad(page);
-		await page.waitForLoadState('networkidle');
+		server = await loadFixtureState('desktop-test-user-note-view', serverPort, page);
 
 		const note = page.locator('.note.selected');
 		await note.focus();
@@ -70,9 +61,7 @@ test.describe('Desktop Snapshots', () => {
 	});
 
 	test('should render flags, symbols and emoji in the items table', async ({ page, serverPort }) => {
-		server = await getServer('item-with-emoji-and-flags', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/4VM2BFHN/items/IY45CHYB/collection`);
-		await waitForLoad(page);
+		server = await loadFixtureState('item-with-emoji-and-flags', serverPort, page);
 		await wait(500); // avoid flaky screenshot with missing icons
 
 		const row = await page.getByRole('row', { name: 'Hip Hop in the United States'});

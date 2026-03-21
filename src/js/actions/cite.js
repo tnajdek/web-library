@@ -7,14 +7,15 @@ import localeData from '../../../data/locale-data.json';
 const supportedLocales = localeData.map(locale => locale.value);
 
 export const fetchCSLStyle = (styleName) => {
-	return async (dispatch) => {
+	return async (dispatch, getState) => {
+		const { stylesBaseUrl } = getState().config;
 		dispatch({
 			type: BEGIN_FETCH_STYLE,
 			styleName,
 		});
 
 		try {
-			const { styleXml, parentStyleXml } = await fetchAndParseIndependentStyle(styleName);
+			const { styleXml, parentStyleXml } = await fetchAndParseIndependentStyle(styleName, stylesBaseUrl);
 			const relevantStyleXml = parentStyleXml ?? styleXml;
 			const styleProperties = getStyleProperties(relevantStyleXml);
 

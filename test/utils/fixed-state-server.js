@@ -30,7 +30,9 @@ export async function getServer(stateRawOrName, port, customHandlers = []) {
 	statePatched = getPatchedState(statePatched, 'config', {
 		translateUrl: `http://localhost:${port}/_translate`,
 		recognizerUrl: `http://localhost:${port}/_recognize`,
-		stylesSourceUrl: `http://localhost:${port}/_styles`
+		stylesSourceUrl: `http://localhost:${port}/_styles`,
+		stylesBaseUrl: `http://localhost:${port}/_csl/`,
+		streamingApiUrl: '',
 	});
 
 	const serve = serveStatic(join(ROOT, 'build'), {'index': false});
@@ -52,6 +54,20 @@ export async function getServer(stateRawOrName, port, customHandlers = []) {
 				root.render(createElement(MainWithState, { state }, null))
 			</script></body></html>`);
 		};
+		if (req.url.startsWith('/_csl/')) {
+			const styleName = req.url.slice('/_csl/'.length).split('?')[0];
+			const fixturePath = join(ROOT, 'test', 'fixtures', `${styleName}.csl.js`);
+			import(fixturePath).then(module => {
+				resp.statusCode = 200;
+				resp.setHeader('Content-Type', 'application/vnd.citationstyles.style+xml');
+				resp.end(module.default);
+			}).catch(() => {
+				console.error(`No CSL fixture for style "${styleName}", returning 404`);
+				resp.statusCode = 404;
+				resp.end('Not Found');
+			});
+			return;
+		}
 		for (let customHandler of customHandlers) {
 			if (customHandler(req, resp)) {
 				return;

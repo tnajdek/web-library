@@ -1,6 +1,6 @@
-import { getServer, closeServer, makeCustomHandler } from '../utils/fixed-state-server.js';
+import { closeServer, loadFixtureState, makeCustomHandler } from '../utils/fixed-state-server.js';
 import { test, expect } from '../utils/playwright-fixtures.js';
-import { wait, waitForLoad } from '../utils/common.js';
+import { wait } from '../utils/common.js';
 import itemsInCollectionDogs from '../fixtures/response/test-user-get-items-in-collection-dogs.json' assert { type: 'json' };
 import testUserManageTags from '../fixtures/response/test-user-manage-tags.json' assert { type: 'json' };
 
@@ -14,10 +14,7 @@ test.describe('Desktop Modal Snapshots', () => {
 	test(`should render "Add Related" modal`, async ({ page, serverPort }) => {
 		expect(itemsInCollectionDogs.length).toBe(7);
 		const customHandler = makeCustomHandler('/api/users/1/collections/WTTJ2J56/items/top', itemsInCollectionDogs);
-		server = await getServer('desktop-test-user-item-view', serverPort, customHandler);
-
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/WTTJ2J56/items/VR82JUX8/item-details`);
-		await waitForLoad(page);
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page, customHandler);
 
 		const relatedTab = await page.getByRole('tab', { name: 'Related' });
 		await relatedTab.click();
@@ -38,9 +35,7 @@ test.describe('Desktop Modal Snapshots', () => {
 	});
 
 	test('should render citations dialog', async ({ page, serverPort }) => {
-		server = await getServer('desktop-test-user-item-view', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/WTTJ2J56/items/VR82JUX8/item-details`);
-		await waitForLoad(page);
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
 
 		const citeButton = await page.getByRole('button', { name: 'Create Citations' });
 		await citeButton.click();
@@ -54,9 +49,7 @@ test.describe('Desktop Modal Snapshots', () => {
 	});
 
 	test('should render bibliography dialog', async ({ page, serverPort }) => {
-		server = await getServer('desktop-test-user-item-view', serverPort);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/WTTJ2J56/items/VR82JUX8/item-details`);
-		await waitForLoad(page);
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
 
 		const citeButton = await page.getByRole('button', { name: 'Create Bibliography' });
 		await citeButton.click();
@@ -72,9 +65,7 @@ test.describe('Desktop Modal Snapshots', () => {
 	test('should render tag manager dot menu dropdown', async ({ page, serverPort }) => {
 		const tagsHandler = makeCustomHandler('/api/users/1/tags', testUserManageTags, { totalResults: 8 });
 		const collectionTagsHandler = makeCustomHandler('/api/users/1/collections/WTTJ2J56/items/top/tags', [], { totalResults: 0 } );
-		server = await getServer('desktop-test-user-item-view', serverPort, [tagsHandler, collectionTagsHandler]);
-		await page.goto(`http://localhost:${serverPort}/testuser/collections/WTTJ2J56/items/VR82JUX8/item-details`);
-		await waitForLoad(page);
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page, [tagsHandler, collectionTagsHandler]);
 
 		await page.getByRole('button', { name: 'Tag Selector Options' }).click();
 		await page.getByRole('menuitem', { name: 'Manage Tags' }).click();
