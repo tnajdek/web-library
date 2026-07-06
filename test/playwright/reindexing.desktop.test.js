@@ -66,6 +66,53 @@ test.describe('Full-text reindexing', () => {
 			.toBeGreaterThan(searchesBeforeCompletion);
 	});
 
+	test('interleaves newly-indexed items into the existing results on re-run', async ({ page, serverPort }) => {
+		// Before the rebuild finishes only these four match; afterwards two freshly-indexed
+		// documents join the result set, interspersed among (not appended after) the originals.
+		const items = generateTestItems(4, { keyPrefix: 'FTR', titlePrefix: 'Reindex' });
+		const fresh = generateTestItems(2, { keyPrefix: 'NEW', titlePrefix: 'Fresh' });
+		const rebuiltItems = [items[0], fresh[0], items[1], items[2], fresh[1], items[3]];
+		const expectedOrder = rebuiltItems.map(item => item.data.title);
+
+		const reindex = makeFulltextReindexingHandlers({
+			indexUrl: '/api/users/1/fulltext/index',
+			items,
+			itemsAfter: rebuiltItems,
+			sequence: [
+				{ status: 'reindexing', indexedCount: 1, expectedCount: 6 },
+				{ status: 'reindexing', indexedCount: 4, expectedCount: 6 },
+				{ status: 'indexed', indexedCount: 6, expectedCount: 6 },
+			],
+		});
+		const handlers = [...reindex.handlers, makeCustomHandler('/api/', [], { totalResults: 0 })];
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page, handlers);
+
+		await runEverythingSearch(page, 'reindex');
+
+		// Only the original four are present while the index is still being rebuilt.
+		await expect(page.getByRole('button', { name: 'Rebuilding full-text index' })).toBeVisible({ timeout: 10000 });
+		await expect.poll(
+			async () => page.locator('.items-table [role="row"][data-index]').count(),
+			{ timeout: 10000 }
+		).toBe(items.length);
+
+		// Once the rebuild completes the re-run pulls the full, interleaved result set.
+		await expect(page.getByRole('button', { name: 'Full-text index rebuilt' })).toBeVisible({ timeout: 10000 });
+		await expect.poll(
+			async () => page.locator('.items-table [role="row"][data-index]').count(),
+			{ timeout: 10000 }
+		).toBe(rebuiltItems.length);
+
+		// The newly-indexed items land in their sorted positions between the originals,
+		// rather than being tacked on at the end of the previously-loaded keys.
+		const renderedOrder = await page.evaluate(() => {
+			const rows = Array.from(document.querySelectorAll('.items-table [role="row"][data-index]'));
+			rows.sort((a, b) => Number(a.getAttribute('data-index')) - Number(b.getAttribute('data-index')));
+			return rows.map(row => row.querySelector('[data-column-name="title"] .truncate')?.textContent ?? '');
+		});
+		expect(renderedOrder).toEqual(expectedOrder);
+	});
+
 	test('popover opens automatically and shows indexed and expected counts', async ({ page, serverPort }) => {
 		const items = generateTestItems(4, { keyPrefix: 'FTR', titlePrefix: 'Reindex' });
 		const reindex = makeFulltextReindexingHandlers({

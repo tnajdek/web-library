@@ -277,7 +277,9 @@ export function makePaginatedHandler(urlPath, allItems) {
 
 // Paired handlers for the full-text reindexing flow: every `qmode=everything` search
 // carries the `Zotero-Full-Text-Reindexing` header until polled `sequence` reports "indexed".
-export function makeFulltextReindexingHandlers({ indexUrl, items, sequence, totalResults = null, version = 1000000 }) {
+// When `itemsAfter` is supplied, searches served after the rebuild completes return that
+// set instead of `items`, mimicking newly-indexed documents joining the result set.
+export function makeFulltextReindexingHandlers({ indexUrl, items, itemsAfter = null, sequence, totalResults = null, version = 1000000 }) {
 	let pollCount = 0;
 	let itemsCount = 0;
 	let done = false;
@@ -294,13 +296,14 @@ export function makeFulltextReindexingHandlers({ indexUrl, items, sequence, tota
 			return true;
 		}
 		itemsCount++;
+		const responseItems = (done && itemsAfter) ? itemsAfter : items;
 		resp.setHeader('Content-Type', 'application/json');
-		resp.setHeader('Total-Results', `${totalResults ?? items.length ?? 0}`);
+		resp.setHeader('Total-Results', `${totalResults ?? responseItems.length ?? 0}`);
 		resp.setHeader('Last-Modified-Version', version);
 		if (!done) {
 			resp.setHeader('Zotero-Full-Text-Reindexing', '1');
 		}
-		resp.end(JSON.stringify(items));
+		resp.end(JSON.stringify(responseItems));
 		return true;
 	};
 
