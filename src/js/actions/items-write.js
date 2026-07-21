@@ -83,7 +83,8 @@ import {
 } from '../constants/actions';
 
 
-const postItemsMultiPatch = async (state, multiPatch, libraryKey = null) => {
+const postItemsMultiPatch = async (getState, multiPatch, libraryKey = null) => {
+	const state = getState();
 	libraryKey = libraryKey ?? state.current.libraryKey;
 	const config = state.config;
 	const version = state.libraries[libraryKey].sync.version;
@@ -95,12 +96,14 @@ const postItemsMultiPatch = async (state, multiPatch, libraryKey = null) => {
 
 	const items = [];
 	const itemKeys = [];
+		const stateItems = getState().libraries[libraryKey]?.items ?? {};
 
 	multiPatch.forEach((_, index) => {
 		try {
 			const updatedItem = response.getEntityByIndex(index);
+			const localItem = stateItems[updatedItem.key];
 			itemKeys.push(updatedItem.key);
-			items.push(updatedItem);
+			items.push(localItem ? { ...localItem, ...updatedItem } : updatedItem);
 		} catch {
 			// ignore single-item failure as we're dispatching aggregated ERROR
 			// containing all keys that failed to update
@@ -488,8 +491,6 @@ const queueUpdateMultipleItems = (multiPatch, libraryKey, id, resolve, reject) =
 	return {
 		queue: libraryKey,
 		callback: async (next, dispatch, getState) => {
-			const state = getState();
-
 			try {
 				dispatch({
 					type: REQUEST_UPDATE_MULTIPLE_ITEMS,
@@ -497,7 +498,7 @@ const queueUpdateMultipleItems = (multiPatch, libraryKey, id, resolve, reject) =
 					multiPatch,
 					id
 				});
-				const result = await postItemsMultiPatch(state, multiPatch, libraryKey);
+				const result = await postItemsMultiPatch(getState, multiPatch, libraryKey);
 				dispatch({
 					type: RECEIVE_UPDATE_MULTIPLE_ITEMS,
 					...result,
@@ -773,7 +774,7 @@ const queueMoveItemsToTrash = (itemKeys, libraryKey, id) => {
 			});
 
 			try {
-				const { response, itemKeys, ...itemsData } = await postItemsMultiPatch(state, multiPatch);
+				const { response, itemKeys, ...itemsData } = await postItemsMultiPatch(getState, multiPatch);
 
 				const affectedParentItemKeys = itemKeys
 					.map(ik => get(state, ['libraries', libraryKey, 'items', ik, 'parentItem']))
@@ -844,7 +845,7 @@ const queueRecoverItemsFromTrash = (itemKeys, libraryKey, id) => {
 			});
 
 			try {
-				const { response, itemKeys, ...itemsData } = await postItemsMultiPatch(state, multiPatch);
+				const { response, itemKeys, ...itemsData } = await postItemsMultiPatch(getState, multiPatch);
 
 				const affectedParentItemKeys = itemKeys
 					.map(ik => get(state, ['libraries', libraryKey, 'items', ik, 'parentItem']))
@@ -919,7 +920,7 @@ const queueToggleTagOnItems = (itemKeys, libraryKey, tagsToToggle, toggleAction,
 			});
 
 			try {
-				const { response, itemKeys, items } = await postItemsMultiPatch(state, multiPatch);
+				const { response, itemKeys, items } = await postItemsMultiPatch(getState, multiPatch);
 				const itemKeysChanged = Object.values(response.raw.success);
 
 				if(!response.isSuccess()) {
@@ -997,7 +998,7 @@ const queueAddToCollection = (itemKeys, collectionKey, libraryKey, id) => {
 			});
 
 			try {
-				const { response, itemKeys, items } = await postItemsMultiPatch(state, multiPatch);
+				const { response, itemKeys, items } = await postItemsMultiPatch(getState, multiPatch);
 				const itemKeysChanged = Object.values(response.raw.success);
 
 				if(!response.isSuccess()) {
@@ -1235,7 +1236,6 @@ const queueStoreRelationInSource = (itemKeys, targetItemKeys, sourceLibraryKey, 
 	return {
 		queue: sourceLibraryKey,
 		callback: async (next, dispatch, getState) => {
-			const state = getState();
 			const multiPatch = itemKeys.map((ik, index) => {
 				const sourceItem = getState().libraries[sourceLibraryKey].items[ik];
 				const newItemKey = targetItemKeys[index];
@@ -1258,7 +1258,7 @@ const queueStoreRelationInSource = (itemKeys, targetItemKeys, sourceLibraryKey, 
 			});
 
 			try {
-				const { response } = await postItemsMultiPatch(state, multiPatch);
+				const { response } = await postItemsMultiPatch(getState, multiPatch);
 				dispatch({
 					itemKeys,
 					libraryKey: sourceLibraryKey,
@@ -1324,7 +1324,7 @@ const queueRemoveFromCollection = (itemKeys, collectionKey, libraryKey, id) => {
 			});
 
 			try {
-				const { response, itemKeys, items } = await postItemsMultiPatch(state, multiPatch);
+				const { response, itemKeys, items } = await postItemsMultiPatch(getState, multiPatch);
 				const itemKeysChanged = Object.values(response.raw.success);
 
 				if(!response.isSuccess()) {

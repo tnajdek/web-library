@@ -205,4 +205,62 @@ describe('Reader', () => {
 		await waitForPosition();
 		await waitFor(() => expect(postCounter).toBe(2));
 	});
+
+	test('Annotation is kept when saving a change that the server already has', async () => {
+		let postedPatch = null;
+		server.use(
+			http.post('https://api.zotero.org/users/1/items', async ({ request }) => {
+				postedPatch = await request.json();
+				// server reports the object as unchanged
+				return HttpResponse.json({
+					success: {}, successful: {}, failed: {},
+					unchanged: { "0": "4KTXPJNC" }
+				}, {
+					headers: { 'Last-Modified-Version': request.headers.get('If-Unmodified-Since-Version') }
+				});
+			})
+		);
+
+		const { store, container } = renderWithProviders(<MainZotero />, { preloadedState: state });
+		await waitFor(() => expect(container.querySelector('iframe')).toBeInTheDocument(), { timeout: 3000 });
+		const iframe = container.querySelector('iframe');
+		let readerConfig;
+		const mockReader = {
+			setAnnotations: jest.fn(),
+			unsetAnnotations: jest.fn()
+		};
+
+		iframe.contentWindow.createReader = (_rc) => {
+			readerConfig = _rc;
+			return mockReader;
+		}
+		fireEvent(iframe, new Event('load', { bubbles: false, cancelable: false }));
+
+		// user changes the color of the existing "Blue note" annotation (4KTXPJNC, #2ea8e5 in
+		// the fixture); all other fields match the local copy so the patch is color-only
+		await act(() => readerConfig.onSaveAnnotations([{
+			libraryID: '',
+			id: '4KTXPJNC',
+			type: 'note',
+			readOnly: false,
+			comment: 'Blue note',
+			pageLabel: '1',
+			color: '#ff6666',
+			sortIndex: '00000|000171|00055',
+			position: { pageIndex: 0, rects: [[535.439, 804.318, 557.439, 826.318]] },
+			tags: [],
+			dateModified: '2023-08-23T13:36:44Z',
+		}]));
+
+		await waitFor(() => expect(postedPatch).not.toBeNull());
+		expect(postedPatch).toEqual([{ key: '4KTXPJNC', annotationColor: '#ff6666' }]);
+
+		// wait for the update queue to drain so the "unchanged" response has been processed
+		await waitFor(() => expect(Object.keys(store.getState().libraries.u1.updating.items).length).toBe(0));
+		await waitForPosition();
+
+		// the annotation must remain a child of the attachment and must not be removed from the reader
+		expect(store.getState().libraries.u1.itemsByParent.N2PJUHD6.keys).toContain('4KTXPJNC');
+		expect(mockReader.unsetAnnotations).not.toHaveBeenCalledWith(expect.arrayContaining(['4KTXPJNC']));
+	});
 });
