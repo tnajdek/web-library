@@ -1005,3 +1005,74 @@ test.describe('Desktop Modal Focus Management', () => {
 		await expect(noteItem.getByRole('button', { name: 'Note Options' })).toBeFocused();
 	});
 });
+
+test.describe('Desktop Modal Clipboard', () => {
+	let server;
+
+	test.afterEach(async () => {
+		await closeServer(server);
+	});
+
+	// Replaces `navigator.clipboard.write` with a stub that captures ClipboardItems instead of
+	// writing to the real clipboard. Assertions read the captured item directly, so the test
+	// needs no clipboard permissions (grantable only on Chromium), no document focus, and leaves
+	// the host clipboard untouched
+	const captureClipboardWrites = async page => {
+		await page.addInitScript(() => {
+			window.clipboardItemsWritten = [];
+			navigator.clipboard.write = async items => { window.clipboardItemsWritten.push(...items); };
+		});
+	};
+
+	const readCapturedClipboardItem = async page => {
+		await page.waitForFunction(() => window.clipboardItemsWritten.length > 0);
+		return await page.evaluate(async () => {
+			const item = window.clipboardItemsWritten[0];
+			return {
+				types: [...item.types],
+				plain: await (await item.getType('text/plain')).text(),
+				html: await (await item.getType('text/html')).text(),
+			};
+		});
+	};
+
+	test('Copy to Clipboard in Bibliography modal includes the text/html flavor', async ({ page, serverPort }) => {
+		await captureClipboardWrites(page);
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
+
+		// Open the Bibliography modal and wait for the bibliography to render
+		await page.getByRole('button', { name: 'Create Bibliography' }).click();
+		const modal = page.getByRole('dialog', { name: 'Bibliography' });
+		await expect(modal).toBeVisible();
+		await expect(modal.locator('.bibliography .csl-entry')).toContainText('Kealy');
+
+		await modal.getByRole('button', { name: 'Copy to Clipboard' }).click();
+
+		const { types, plain, html } = await readCapturedClipboardItem(page);
+		expect(types).toContain('text/plain');
+		expect(types).toContain('text/html');
+		expect(html).toContain('csl-entry');
+		expect(html).toContain('Kealy');
+		expect(plain).toContain('Kealy');
+		expect(plain).not.toContain('<');
+	});
+
+	test('Copy Citation in Copy Citation modal includes the text/html flavor', async ({ page, serverPort }) => {
+		await captureClipboardWrites(page);
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
+
+		// Open the Copy Citation modal and wait for the citation preview to render
+		await page.getByRole('button', { name: 'Create Citations' }).click();
+		const modal = page.getByRole('dialog', { name: 'Copy Citation' });
+		await expect(modal).toBeVisible();
+		await expect(modal.locator('.copy-citation-container .preview')).toContainText('Kealy');
+
+		await modal.getByRole('button', { name: 'Copy Citation' }).click();
+
+		const { types, plain, html } = await readCapturedClipboardItem(page);
+		expect(types).toContain('text/plain');
+		expect(types).toContain('text/html');
+		expect(html).toContain('Kealy');
+		expect(plain).toContain('Kealy');
+	});
+});

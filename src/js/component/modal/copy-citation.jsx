@@ -4,12 +4,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useDebouncedCallback } from 'use-debounce';
 import { useFocusManager, usePrevious } from 'web-common/hooks';
 import CSSTransition from 'react-transition-group/cjs/CSSTransition';
-import copy from 'copy-to-clipboard';
 import cx from 'classnames';
 import PropTypes from 'prop-types';
 
 import { citationFromItems, fetchCSLStyle, fetchItemsByKeys, toggleModal } from '../../actions';
 import { BIBLIOGRAPHY, COPY_CITATION } from '../../constants/modals';
+import { copyWithHtml } from '../../common/clipboard';
 import { focusOnModalOpen } from '../../common/modal-focus';
 import { locatorShortForms, locators } from '../../constants/locators';
 import Input from '../form/input';
@@ -489,7 +489,6 @@ const CopyCitationModal = () => {
 	const title = styleProperties?.isNoteStyle ? 'Copy Note' : 'Copy Citation';
 	const bubblesRef = useRef(null);
 	const citationsTouchRef = useRef(null);
-	const copyDataInclude = useRef(null);
 	const copyTimeout = useRef(null);
 	const copyButtonRef = useRef(null);
 	const { receiveBlur, receiveFocus, focusNext, focusPrev } = useFocusManager(bubblesRef);
@@ -517,12 +516,7 @@ const CopyCitationModal = () => {
 	}, [dispatch, itemKeys, libraryKey, state.popoverOpenFor]);
 
 	const handleCopyClick = useCallback(async () => {
-		copyDataInclude.current = [
-			{ mime: 'text/plain', data: state.citationsPlain },
-			{ mime: 'text/html', data: state.citationsHTML },
-		];
-
-		copy(state.citationsPlain);
+		copyWithHtml(state.citationsPlain, state.citationsHTML);
 
 		if (isTouchOrSmall) {
 			dispatch(toggleModal(COPY_CITATION, false, { itemKeys, libraryKey }));
@@ -637,16 +631,6 @@ const CopyCitationModal = () => {
 		}
 	}, [isOpen, handleDocumentEvent]);
 
-	const handleCopyToClipboard = useCallback(ev => {
-		if (copyDataInclude.current) {
-			copyDataInclude.current.forEach(copyDataFormat => {
-				ev.clipboardData.setData(copyDataFormat.mime, copyDataFormat.data);
-			});
-			ev.preventDefault();
-			copyDataInclude.current = null;
-		}
-	}, []);
-
 	const handleBibliographyClick = useCallback(() => {
 		dispatch(toggleModal(COPY_CITATION, false, { itemKeys, libraryKey }));
 		dispatch(toggleModal(BIBLIOGRAPHY, true, { itemKeys, libraryKey }));
@@ -725,14 +709,6 @@ const CopyCitationModal = () => {
 			}
 		}
 	}, [isTouchOrSmall, state.popoverOpenFor, state.prevPopoverOpenFor]);
-
-	// Register copy event handler to inject html and plain text into clipboard
-	useEffect(() => {
-		document.addEventListener('copy', handleCopyToClipboard, true);
-		return () => {
-			document.removeEventListener('copy', handleCopyToClipboard, true);
-		}
-	}, [handleCopyToClipboard]);
 
 	useEffect(() => {
 		if(isOpen && itemKeys !== prevItemKeys) {

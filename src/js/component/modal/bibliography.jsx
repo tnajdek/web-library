@@ -6,6 +6,7 @@ import copy from 'copy-to-clipboard';
 import cx from 'classnames';
 
 import { BIBLIOGRAPHY } from '../../constants/modals';
+import { copyWithHtml } from '../../common/clipboard';
 import { focusOnModalOpen } from '../../common/modal-focus';
 import { stripTagsUsingDOM } from '../../common/format';
 import { toggleModal, fetchItemKeys, fetchCSLStyle, bibliographyFromItems, triggerSelectMode, fetchItemsByKeys } from '../../actions';
@@ -46,7 +47,6 @@ const BibliographyModal = () => {
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const wasDropdownOpen = usePrevious(isDropdownOpen);
 
-	const copyDataInclude = useRef(null);
 	const copyToClipboardRef = useRef(null);
 	const dropdownTimer = useRef(null);
 
@@ -64,23 +64,7 @@ const BibliographyModal = () => {
 	}, [dispatch, itemKeys, libraryKey]);
 
 	const copyToClipboard = useCallback(bibliographyToCopy => {
-		const bibliographyText = stripTagsUsingDOM(bibliographyToCopy);
-
-		copyDataInclude.current = [
-			{ mime: 'text/plain', data: bibliographyText },
-			{ mime: 'text/html', data: bibliographyToCopy },
-		];
-		copy(bibliographyText);
-	}, []);
-
-	const handleCopy = useCallback(ev => {
-		if (copyDataInclude.current) {
-			copyDataInclude.current.forEach(copyDataFormat => {
-				ev.clipboardData.setData(copyDataFormat.mime, copyDataFormat.data);
-			});
-			ev.preventDefault();
-			copyDataInclude.current = null;
-		}
+		copyWithHtml(stripTagsUsingDOM(bibliographyToCopy), bibliographyToCopy);
 	}, []);
 
 	//@NOTE: handles both click and keydown explicitly because "click" is
@@ -142,13 +126,6 @@ const BibliographyModal = () => {
 		const itemKeys = await dispatch(fetchItemKeys('ITEMS_IN_COLLECTION', libraryKey, { collectionKey }));
 		dispatch(toggleModal(BIBLIOGRAPHY, true, { libraryKey, itemKeys }));
 	}, [collectionKey, dispatch, libraryKey]);
-
-	useEffect(() => {
-		document.addEventListener('copy', handleCopy, true);
-		return () => {
-			document.removeEventListener('copy', handleCopy, true);
-		}
-	}, [handleCopy]);
 
 	// regenerate bibliography when locale changes
 	useEffect(() => {
