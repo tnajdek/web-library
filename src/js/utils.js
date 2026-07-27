@@ -519,12 +519,21 @@ const getPrevSibling = (elem, selector) => {
 
 let emojiRegex;
 
+// Symbols such as ★, ☼ or ♫ are no longer Extended_Pictographic as of Unicode 17, but remain
+// Other_Symbol. That category has to be confined to the pictographic blocks, otherwise Braille
+// patterns, Kangxi radicals and CJK compatibility symbols are matched as well.
+const pictographicSymbols = String.raw`[\p{So}&&[☀-➿\u{1F000}-\u{1FAFF}]]`;
+
+// Regional indicators are left out because country flags are matched as RGI_Emoji sequences
+const nonEmojiSymbols = String.raw`[©®™\u{1F1E6}-\u{1F1FF}]`;
+
 try {
 	// Either match RGI_Emoji (which includes country flags) or any character followed by the Variation Selector-16
 	// Requires "v" flag which is only available in modern browsers
-	emojiRegex = new RegExp(String.raw`(?:(?:\p{RGI_Emoji}|[\p{Extended_Pictographic}--[©®™]])(?!\uFE0F)|.\uFE0F)+`, "gv");
+	emojiRegex = new RegExp(String.raw`(?:(?:\p{RGI_Emoji}|[[\p{Extended_Pictographic}${pictographicSymbols}]--${nonEmojiSymbols}])(?!\uFE0F)|.\uFE0F)+`, "gv");
 } catch {
 	try {
+		// Browsers without "v" flag support predate Unicode 17, where Extended_Pictographic still covers symbols
 		emojiRegex = new RegExp(String.raw`(?:(?![©®™])\p{Extended_Pictographic}(?!\uFE0F)|.\uFE0F)+`, "gu");
 		console.warn("Using legacy emoji regex. Some emoji may be missing in the items table.");
 	} catch {
