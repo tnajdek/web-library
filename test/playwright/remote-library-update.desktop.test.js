@@ -62,6 +62,27 @@ function captureAllApiRequests(page) {
 	return captured;
 }
 
+function getBaselineVersion(page) {
+	return page.evaluate(() => window.WebLibStore.getState().libraries.u1.sync.version);
+}
+
+function dispatchRemoteLibraryUpdate(page, version) {
+	return page.evaluate(version => {
+		window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', version));
+	}, version);
+}
+
+// Wait until the sync state has caught up to the highest dispatched version *and* no
+// further requests are pending, which also covers the trailing fan-out if one fires.
+// networkidle alone is not enough: it can resolve in the microtask gap between the
+// initial responses arriving and the trailing fetches being sent.
+function waitForCatchUp(page, targetVersion) {
+	return page.waitForFunction(targetVersion => {
+		const sync = window.WebLibStore.getState().libraries?.u1?.sync;
+		return sync && !sync.isCatchingUp && sync.requestsPending === 0 && sync.version >= targetVersion;
+	}, targetVersion);
+}
+
 function summarize(captured) {
 	const countByPath = {};
 	const sinceByPath = {};
@@ -84,47 +105,34 @@ test.describe('Remote library update fan-out', () => {
 		server = await loadFixtureState('desktop-test-user-library-view', serverPort, page, makeSinceHandlers(gate));
 		const captured = captureSinceRequests(page);
 
+		// The fixture's sync.version is whatever the account stood at when it was
+		// generated, so the burst is expressed relative to it rather than as literals.
+		const baseVersion = await getBaselineVersion(page);
+
 		// Each dispatch runs in its own page.evaluate so each resumes on a fresh JS
 		// tick, mirroring how WS messages actually arrive (each onmessage gets its
 		// own task) and avoiding a Firefox quirk where multiple synchronous fetches
-		// in one evaluate don't all surface as observable requests. Baseline
-		// sync.version is 394, so oldVersion=394 for event 1 and climbs as
-		// STREAMING_REMOTE_LIBRARY_UPDATE lands. The gate holds the since-fetches in
-		// flight so isCatchingUp stays true and events 2-5 coalesce via pendingTarget.
-		const firstCollectionsInFlight = page.waitForRequest(/\/api\/users\/1\/collections\?.*since=394/);
+		// in one evaluate don't all surface as observable requests. oldVersion is the
+		// baseline for event 1 and climbs as STREAMING_REMOTE_LIBRARY_UPDATE lands.
+		// The gate holds the since-fetches in flight so isCatchingUp stays true and
+		// events 2-5 coalesce via pendingTarget.
+		const firstCollectionsInFlight = page.waitForRequest(
+			new RegExp(`/api/users/1/collections\\?.*since=${baseVersion}`)
+		);
 
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 395));
-		});
+		await dispatchRemoteLibraryUpdate(page, baseVersion + 1);
 
 		// Confirm event 1's /collections fetch is physically on the wire before the
 		// remaining events dispatch -- makes the "events arrive while a sync is in
 		// flight" coalescing path explicit rather than implied by the gate.
 		await firstCollectionsInFlight;
 
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 396));
-		});
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 397));
-		});
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 398));
-		});
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 399));
-		});
+		for (const offset of [2, 3, 4, 5]) {
+			await dispatchRemoteLibraryUpdate(page, baseVersion + offset);
+		}
 
 		gate.release();
-		// Wait until the sync state has caught up to the highest dispatched
-		// version *and* no further requests are pending, which also covers
-		// the trailing fan-out if one fires. networkidle alone is not enough:
-		// it can resolve in the microtask gap between the initial responses
-		// arriving and the trailing fetches being sent.
-		await page.waitForFunction(() => {
-			const sync = window.WebLibStore.getState().libraries?.u1?.sync;
-			return sync && !sync.isCatchingUp && sync.requestsPending === 0 && sync.version >= 399;
-		});
+		await waitForCatchUp(page, baseVersion + 5);
 
 		const { countByPath } = summarize(captured);
 
@@ -139,9 +147,9 @@ test.describe('Remote library update fan-out', () => {
 		expect(countByPath['/api/users/1/deleted']).toBeLessThanOrEqual(EXPECTED_MAX_PER_ENDPOINT);
 		expect(countByPath['/api/users/1/items']).toBeLessThanOrEqual(EXPECTED_MAX_PER_ENDPOINT);
 
-		// Earliest since must be the fixture baseline 394.
+		// Earliest since must be the fixture baseline.
 		const allSinceValues = captured.map(r => Number(r.since));
-		expect(Math.min(...allSinceValues)).toBe(394);
+		expect(Math.min(...allSinceValues)).toBe(baseVersion);
 	});
 
 	test('reader view fetches only reader-specific settings and coalesces a burst to at most one initial + one trailing wave per setting', async ({ page, serverPort }) => {
@@ -164,37 +172,24 @@ test.describe('Remote library update fan-out', () => {
 		);
 
 		const captured = captureAllApiRequests(page);
+		const baseVersion = await getBaselineVersion(page);
 
-		// Baseline sync.version is 394. STREAMING_REMOTE_LIBRARY_UPDATE bumps it
-		// synchronously inside event 1's thunk, so events 2-5 hit isCatchingUp and
-		// only bump pendingTarget. The gate holds the reader settings in flight
-		// across all dispatches to keep isCatchingUp true.
+		// STREAMING_REMOTE_LIBRARY_UPDATE bumps sync.version synchronously inside
+		// event 1's thunk, so events 2-5 hit isCatchingUp and only bump pendingTarget.
+		// The gate holds the reader settings in flight across all dispatches to keep
+		// isCatchingUp true.
 		const firstThemesInFlight = page.waitForRequest(/\/api\/users\/1\/settings\/readerCustomThemes/);
 
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 395));
-		});
+		await dispatchRemoteLibraryUpdate(page, baseVersion + 1);
 
 		await firstThemesInFlight;
 
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 396));
-		});
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 397));
-		});
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 398));
-		});
-		await page.evaluate(() => {
-			window.WebLibStore.dispatch(window.WebLibActions.remoteLibraryUpdate('u1', 399));
-		});
+		for (const offset of [2, 3, 4, 5]) {
+			await dispatchRemoteLibraryUpdate(page, baseVersion + offset);
+		}
 
 		gate.release();
-		await page.waitForFunction(() => {
-			const sync = window.WebLibStore.getState().libraries?.u1?.sync;
-			return sync && !sync.isCatchingUp && sync.requestsPending === 0 && sync.version >= 399;
-		});
+		await waitForCatchUp(page, baseVersion + 5);
 
 		const { countByPath } = summarize(captured);
 

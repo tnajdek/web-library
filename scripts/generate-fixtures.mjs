@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { chromium } from 'playwright';
-import { stateProcessSymbols, stateToJSON } from '../test/utils/state.js';
+import { STATE_HOLE, stateProcessSymbols, stateToJSON } from '../test/utils/state.js';
 import secret from '../.secret.json' with { type: "json" };
 import child_process from "child_process";
 import psTree from 'ps-tree';
@@ -211,11 +211,13 @@ async function makeFixture(stateURL, name, callback) {
 	const stateProcessSymbolsString = stateProcessSymbols.toString();
 	const stateToJSONString = stateToJSON.toString();
 
-	let state = await page.evaluate(([stateToJSONString, stateProcessSymbolsString]) => {
+	// The serialization helpers are eval'd in the page, so they have no access to module scope --
+	// the hole marker has to be handed to them explicitly.
+	let state = await page.evaluate(([stateToJSONString, stateProcessSymbolsString, stateHole]) => {
 		eval(stateProcessSymbolsString);
 		eval(stateToJSONString);
-		return stateToJSON(window.WebLibStore.getState());
-	}, [stateToJSONString, stateProcessSymbolsString]);
+		return stateToJSON(window.WebLibStore.getState(), stateHole);
+	}, [stateToJSONString, stateProcessSymbolsString, STATE_HOLE]);
 	state = state.replaceAll(secret.apiKey, 'zzzzzzzzzzzzzzzzzzzzzzzz');
 	state = state.replaceAll(secret.userName, 'testuser');
 	state = state.replaceAll(secret.userId, '1');

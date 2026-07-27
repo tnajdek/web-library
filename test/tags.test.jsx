@@ -263,6 +263,7 @@ describe('Tags', () => {
 		await waitForPosition();
 		const user = userEvent.setup();
 		let hasBeenDeleted = false;
+		let libVersion = state.libraries.u1.sync.version;
 
 		server.use(
 			http.get('https://api.zotero.org/users/1/tags', () => {
@@ -273,11 +274,11 @@ describe('Tags', () => {
 			http.delete('https://api.zotero.org/users/1/tags', ({request}) => {
 				const url = new URL(request.url);
 				expect(url.searchParams.get('tag')).toEqual('pathfinding');
-				expect(request.headers.get('If-Unmodified-Since-Version')).toEqual('394');
+				expect(request.headers.get('If-Unmodified-Since-Version')).toEqual(String(libVersion));
 				hasBeenDeleted = true;
 				return new HttpResponse(null, {
 					status: 204,
-					headers: { 'Last-Modified-Version': '395' }
+					headers: { 'Last-Modified-Version': String(++libVersion) }
 				});
 			})
 		);

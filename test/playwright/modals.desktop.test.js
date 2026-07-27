@@ -512,6 +512,10 @@ test.describe('Desktop Modal Focus Management', () => {
 	test('Focus is trapped within Select Collection modal opened via keyboard', async ({ page, serverPort }) => {
 		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
 
+		// Wait for the app to place initial focus on the search box, otherwise Tab may be
+		// pressed before the app has mounted and land somewhere else entirely
+		await expect(page.getByRole('searchbox', { name: 'Title, Creator, Year' })).toBeFocused();
+
 		// Focus the collection tree and navigate to "AI" collection
 		await page.keyboard.press('Tab');
 		await expect(page.getByRole('treeitem', { name: 'My Library' })).toBeFocused();
@@ -658,8 +662,9 @@ test.describe('Desktop Modal Focus Management', () => {
 		await expect(styleModal.getByText('Second Test Style')).toBeVisible();
 		await expect(styleModal.getByText('Third Test Style')).toBeVisible();
 
-		// Clear search to return to default list before testing focus trap
+		// Clear search to return to default list before testing focus trap.
 		await searchInput.fill('');
+		await expect(styleModal.getByText('APA Style 7th edition')).toBeVisible();
 
 		// Focus is trapped within the modal
 		for (let i = 0; i < 5; i++) {
@@ -790,6 +795,10 @@ test.describe('Desktop Modal Focus Management', () => {
 	test('Focus returns to toggle button after closing Move Collection modal', async ({ page, serverPort }) => {
 		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
 
+		// Wait for the app to place initial focus on the search box, otherwise Tab may be
+		// pressed before the app has mounted and land somewhere else entirely
+		await expect(page.getByRole('searchbox', { name: 'Title, Creator, Year' })).toBeFocused();
+
 		// Navigate to "AI" collection
 		await page.keyboard.press('Tab');
 		await expect(page.getByRole('treeitem', { name: 'My Library' })).toBeFocused();
@@ -823,6 +832,10 @@ test.describe('Desktop Modal Focus Management', () => {
 			makeTextHandler('/api/users/1/collections/I6WUED2Y/items/top', ''),
 		];
 		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page, handlers);
+
+		// Wait for the app to place initial focus on the search box, otherwise Tab may be
+		// pressed before the app has mounted and land somewhere else entirely
+		await expect(page.getByRole('searchbox', { name: 'Title, Creator, Year' })).toBeFocused();
 
 		// Navigate to "AI" collection
 		await page.keyboard.press('Tab');

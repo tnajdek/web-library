@@ -1,6 +1,21 @@
-function stateProcessSymbols(state) {
+// Marker written in place of a sparse array hole. JSON has no way to express a hole -- it writes
+// `null` -- but item/tag/group key arrays are genuinely sparse while the rest of a page is still
+// unfetched, and code under test distinguishes an unfetched slot from a fetched one by checking for
+// `undefined`.
+const STATE_HOLE = '@@hole@@';
+
+// NOTE: this function and stateToJSON are stringified and eval'd inside the browser by
+// scripts/generate-fixtures.mjs, so they cannot reference module scope. That is why the hole marker
+// is threaded through as an argument rather than read from STATE_HOLE directly.
+function stateProcessSymbols(state, hole) {
 	if (Array.isArray(state)) {
-		return state.map(stateProcessSymbols);
+		// Array.prototype.map would preserve holes, which JSON.stringify then flattens to `null`,
+		// so assign every index and mark the holes explicitly.
+		const newState = new Array(state.length);
+		for (let i = 0; i < state.length; i++) {
+			newState[i] = (i in state) ? stateProcessSymbols(state[i], hole) : hole;
+		}
+		return newState;
 	} else if (typeof state === 'object' && state !== null) {
 		const newState = { ...state };
 		Object.getOwnPropertySymbols(state).forEach(s => {
@@ -9,7 +24,7 @@ function stateProcessSymbols(state) {
 		});
 
 		Object.keys(newState)
-			.forEach(k => newState[k] = stateProcessSymbols(newState[k]));
+			.forEach(k => newState[k] = stateProcessSymbols(newState[k], hole));
 		return newState;
 	} else {
 		return state;
@@ -18,7 +33,15 @@ function stateProcessSymbols(state) {
 
 function stateProcessSymbolsReverse(state) {
 	if (Array.isArray(state)) {
-		return state.map(stateProcessSymbolsReverse);
+		// Restore holes so that the array is as sparse as it was when the fixture was captured
+		const newState = new Array(state.length);
+		for (let i = 0; i < state.length; i++) {
+			if (state[i] === STATE_HOLE) {
+				continue;
+			}
+			newState[i] = stateProcessSymbolsReverse(state[i]);
+		}
+		return newState;
 	} else if (typeof state === 'object' && state !== null) {
 		const newState = { ...state };
 
@@ -39,8 +62,8 @@ function stateProcessSymbolsReverse(state) {
 	}
 }
 
-function stateToJSON(state) {
-	return JSON.stringify(stateProcessSymbols(state));
+function stateToJSON(state, hole) {
+	return JSON.stringify(stateProcessSymbols(state, hole));
 }
 
 function JSONtoState(json) {
@@ -97,4 +120,4 @@ function getPatchedStateArray(state, path, index, patch) {
 }
 
 
-export { stateProcessSymbols, stateToJSON, JSONtoState, getPatchedState, getPachtedStateMultiple, getPatchedStateArray, getStateWithout };
+export { STATE_HOLE, stateProcessSymbols, stateToJSON, JSONtoState, getPatchedState, getPachtedStateMultiple, getPatchedStateArray, getStateWithout };

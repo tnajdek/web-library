@@ -45,10 +45,12 @@ test.describe('Full-text reindexing', () => {
 		await runEverythingSearch(page, 'reindex');
 
 		// The indicator appears in response to the Zotero-Full-Text-Reindexing header.
-		await expect(page.getByRole('button', { name: 'Rebuilding full-text index' })).toBeVisible({ timeout: 10000 });
+		const indicator = page.getByRole('button', { name: 'Rebuilding full-text index' });
+		await expect(indicator).toBeVisible({ timeout: 10000 });
 
 		// The ring reflects progress reported by successive fulltext/index responses.
-		const progressbar = page.getByRole('progressbar');
+		// Scoped to the indicator: the tag selector's filter spinner is a progressbar too.
+		const progressbar = indicator.getByRole('progressbar');
 		await expect(progressbar).toBeVisible({ timeout: 10000 });
 		await expect(progressbar).toHaveAttribute('aria-valuemax', '4');
 		await expect.poll(
@@ -130,7 +132,7 @@ test.describe('Full-text reindexing', () => {
 
 		const indicator = page.getByRole('button', { name: 'Rebuilding full-text index' });
 		await expect(indicator).toBeVisible({ timeout: 10000 });
-		await expect(page.getByRole('progressbar')).toBeVisible({ timeout: 10000 });
+		await expect(indicator.getByRole('progressbar')).toBeVisible({ timeout: 10000 });
 
 		// The popover opens by itself when the rebuild starts -- no click needed.
 		await expect(page.getByText('Preparing full-text search (2/4)')).toBeVisible({ timeout: 10000 });

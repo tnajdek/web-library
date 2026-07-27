@@ -1,13 +1,16 @@
 import {test, expect} from "../utils/playwright-fixtures.js";
-import {closeServer, generateTestItems, loadFixtureState, makeCustomHandler, makeTextHandler} from "../utils/fixed-state-server.js";
+import {closeServer, generateTestItems, loadFixtureState, makeCustomHandler, makePaginatedHandler, makeTextHandler} from "../utils/fixed-state-server.js";
 import testUserRemoveItemFromCollection from '../fixtures/response/test-user-remove-item-from-collection.json' assert { type: 'json' };
 import testUserTrashItem from '../fixtures/response/test-user-trash-item.json' assert { type: 'json' };
 
-// Generate Zotero API items for the unfetched range (indices 61-82) in the
-// desktop-test-user-library-view fixture. These items are returned by the
-// custom handler when the virtual list scrolls into the sparse zone.
-function generateUnfetchedItems() {
-	return generateTestItems(22, { keyPrefix: 'UNFCH', titlePrefix: 'Unfetched Item', startIndex: 61 });
+// Generate Zotero API items covering the whole desktop-test-user-library-view item list, so that
+// indices 61-82 -- the unfetched range in that fixture -- can be served when the virtual list
+// scrolls into the sparse zone. The full set is needed because it is served through
+// makePaginatedHandler, which slices by the requested `start`/`limit`: a handler that ignores those
+// lands the same items at whichever offset happened to be requested, shifting the indices the tests
+// assert on. Indices 0-60 are already in the fixture state, so they are never re-requested.
+function generateLibraryItems() {
+	return generateTestItems(83, { keyPrefix: 'UNFCH', titlePrefix: 'Unfetched Item' });
 }
 
 test.describe('Desktop Interaction', () => {
@@ -352,12 +355,16 @@ test.describe('Desktop Interaction', () => {
 	test('Navigate through navbar using keyboard', async ({ page, serverPort }) => {
 		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
 
+		await expect(page.getByRole('searchbox', { name: 'Title, Creator, Year' })).toBeFocused();
+
 		await page.keyboard.press('ArrowLeft');
 		await expect(page.getByRole('button', {name: 'Search Mode'})).toBeFocused();
 	});
 
 	test('Navigate through the toolbar in trash view using keyboard', async ({ page, serverPort }) => {
 		server = await loadFixtureState('desktop-test-user-trash-view', serverPort, page);
+
+		await expect(page.getByRole('searchbox', { name: 'Title, Creator, Year' })).toBeFocused();
 
 		// Tab through: searchbox -> collection tree -> collapse tag selector -> tag selector -> filter tags -> toolbar
 		// In trash view, all toolbar buttons before "More" are disabled (no item selected), so focus lands on "More"
@@ -542,9 +549,9 @@ test.describe('Desktop Interaction', () => {
 	});
 
 	test('PageDown into unfetched items selects the target row once loaded', async ({ page, serverPort }) => {
-		const unfetchedItems = generateUnfetchedItems();
+		const libraryItems = generateLibraryItems();
 		const handlers = [
-			makeCustomHandler('/api/users/1/items/top', unfetchedItems, { totalResults: 83 }),
+			makePaginatedHandler('/api/users/1/items/top', libraryItems),
 			// catch-all for any other API requests (e.g. tags, item details)
 			makeCustomHandler('/api/', [], { totalResults: 0 }),
 		];
@@ -592,9 +599,9 @@ test.describe('Desktop Interaction', () => {
 	});
 
 	test('End key navigates to unfetched last item and selects it once loaded', async ({ page, serverPort }) => {
-		const unfetchedItems = generateUnfetchedItems();
+		const libraryItems = generateLibraryItems();
 		const handlers = [
-			makeCustomHandler('/api/users/1/items/top', unfetchedItems, { totalResults: 83 }),
+			makePaginatedHandler('/api/users/1/items/top', libraryItems),
 			// catch-all for any other API requests
 			makeCustomHandler('/api/', [], { totalResults: 0 }),
 		];
@@ -626,9 +633,9 @@ test.describe('Desktop Interaction', () => {
 	});
 
 	test('Shift+PageDown into unfetched items extends selection from anchor', async ({ page, serverPort }) => {
-		const unfetchedItems = generateUnfetchedItems();
+		const libraryItems = generateLibraryItems();
 		const handlers = [
-			makeCustomHandler('/api/users/1/items/top', unfetchedItems, { totalResults: 83 }),
+			makePaginatedHandler('/api/users/1/items/top', libraryItems),
 			makeCustomHandler('/api/', [], { totalResults: 0 }),
 		];
 		server = await loadFixtureState('desktop-test-user-library-view', serverPort, page, handlers);
@@ -685,9 +692,9 @@ test.describe('Desktop Interaction', () => {
 	});
 
 	test('Shift+End into unfetched items falls back to selecting last item when range has holes', async ({ page, serverPort }) => {
-		const unfetchedItems = generateUnfetchedItems();
+		const libraryItems = generateLibraryItems();
 		const handlers = [
-			makeCustomHandler('/api/users/1/items/top', unfetchedItems, { totalResults: 83 }),
+			makePaginatedHandler('/api/users/1/items/top', libraryItems),
 			makeCustomHandler('/api/', [], { totalResults: 0 }),
 		];
 		server = await loadFixtureState('desktop-test-user-library-view', serverPort, page, handlers);

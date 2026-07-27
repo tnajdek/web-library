@@ -249,44 +249,18 @@ const TagList = forwardRef(({toggleTag = noop, isManager = false, ...rest}, ref)
 	const [isBusy] = useDebounce(!hasChecked || (isFetching && isFilteringOrHideAutomatic), 100);
 
 	const [dotMenuFor, setDotMenuFor] = useState(null);
-	const pendingFocusRef = useRef(null);
+	const pendingFocusIndexRef = useRef(null);
 	const itemCountRef = useRef(0);
 
-	useEffect(() => {
-		return () => {
-			if (pendingFocusRef.current) {
-				cancelAnimationFrame(pendingFocusRef.current);
-			}
-		};
-	}, []);
-
 	const focusRow = useCallback((index) => {
-		if (pendingFocusRef.current) {
-			cancelAnimationFrame(pendingFocusRef.current);
-			pendingFocusRef.current = null;
-		}
-
+		// Keep the target index pending until react-window settles
+		pendingFocusIndexRef.current = index;
 		const selector = `[data-index="${index}"]`;
 		if (listRef.current?.querySelector(selector)) {
 			focusBySelector(selector);
 		} else {
-			// Target row isn't in the DOM yet -- react-window hasn't rendered it.
-			// Park focus on the list container to prevent focus loss when the old
-			// row unmounts, then retry until the target row appears.
+			// Target row isn't in the DOM yet -- park focus on the list container to prevent focus
 			listRef.current?.focus();
-			let retries = 0;
-			const tryFocus = () => {
-				if (listRef.current?.querySelector(selector)) {
-					focusBySelector(selector);
-					pendingFocusRef.current = null;
-				} else if (retries < 10) {
-					retries++;
-					pendingFocusRef.current = requestAnimationFrame(tryFocus);
-				} else {
-					pendingFocusRef.current = null;
-				}
-			};
-			pendingFocusRef.current = requestAnimationFrame(tryFocus);
 		}
 	}, [focusBySelector]);
 
@@ -369,6 +343,29 @@ const TagList = forwardRef(({toggleTag = noop, isManager = false, ...rest}, ref)
 		loadMoreRows: handleLoadMore,
 		rowCount: itemCount,
 	});
+
+	const handleRowsRendered = useCallback(args => {
+		onRowsRendered(args);
+		if (pendingFocusIndexRef.current === null) {
+			return;
+		}
+		const active = document.activeElement;
+		const isFocusLost = active === null || active === document.body;
+		const isParked = active === listRef.current;
+		if (!isFocusLost && !isParked) {
+			pendingFocusIndexRef.current = null;
+			return;
+		}
+		const pendingRow = listRef.current?.querySelector(`[data-index="${pendingFocusIndexRef.current}"]`);
+		if (pendingRow) {
+			pendingFocusIndexRef.current = null;
+			focusBySelector(pendingRow);
+		} else if (isFocusLost) {
+			// The focused row was unmounted before the target row rendered -- re-park focus on the
+			// list container and wait for the next render.
+			listRef.current?.focus();
+		}
+	}, [focusBySelector, onRowsRendered]);
 
 	const handleDotMenuToggle = useCallback(ev => {
 		if (ev === null) {
@@ -459,10 +456,9 @@ const TagList = forwardRef(({toggleTag = noop, isManager = false, ...rest}, ref)
 									onFocusNext: focusNext, onFocusPrev: focusPrev,
 									dotMenuFor,
 									onDotMenuToggle: handleDotMenuToggle, ...pick(rest, ['onToggleTagManager'])
-								}
-								}
+								}}
 								rowHeight={isTouchOrSmall ? 43 : 28}
-								onRowsRendered={onRowsRendered}
+								onRowsRendered={handleRowsRendered}
 								listRef={handleRWListRef}
 								style={{width, height}}
 							/>
