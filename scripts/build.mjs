@@ -27,7 +27,7 @@ async function main() {
 	try {
 		await runBatch('Preparing...', PREPARE_TASKS);
 		await runBatch(`Building (${NODE_ENV})...`, BUILD_TASKS);
-		await runSingle('Postprocess (autoprefixer)', 'npx', ['postcss', 'build/static/web-library/zotero-web-library.css', '--use', 'autoprefixer', '--no-map', '-r'], { NODE_ENV });
+		await runSingle('Postprocess (postcss)', 'npm', ['run', 'build:postprocess'], { NODE_ENV });
 	} catch (err) {
 		process.stdout.write(`${RED}${BOLD}Build failed: ${err.message}${RESET}\n`);
 		process.exit(1);

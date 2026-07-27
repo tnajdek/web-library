@@ -209,7 +209,9 @@
 	}
 
 	.modal-scrollable & {
-		overflow: clip auto;
+		// Longhands for old Safari
+		overflow-y: auto;
+		overflow-x: clip;
 		-webkit-overflow-scrolling: touch; // Momentum scrolling for iOS 10–
 
 		&:focus {
