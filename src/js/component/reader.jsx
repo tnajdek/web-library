@@ -17,6 +17,7 @@ import {
 } from '../actions';
 import { PDFWorker } from '../common/pdf-worker';
 import { getItemViewState, updateItemViewState } from '../common/viewstate'
+import { removeLSItem } from '../common/local-storage';
 import { useItemsState, useTrackedSettingsKey } from '../hooks';
 import TagPicker from './item-details/tag-picker';
 import { READER_CONTENT_TYPES } from '../constants/reader';
@@ -441,7 +442,7 @@ const Reader = () => {
 
 	useEffect(() => {
 		// pdf js stores last page in localStorage but we want to use one from user library settings instead
-		localStorage.removeItem('pdfjs.history');
+		removeLSItem('pdfjs.history');
 	}, []);
 
 	useEffect(() => {

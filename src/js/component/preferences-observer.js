@@ -5,7 +5,7 @@ import { PREFERENCES_LOAD } from '../constants/actions';
 import { sortItems } from '../actions';
 import { usePrevious } from 'web-common/hooks';
 import { preferences as defaultPreferences } from '../constants/defaults';
-import { localStorageWrapper } from '../utils';
+import { getLSItem } from '../common/local-storage';
 
 
 const PreferencesObserver = () => {
@@ -17,7 +17,7 @@ const PreferencesObserver = () => {
 
 	const handlePrefChange = useCallback(() => {
 		try {
-			const newPrefs = JSON.parse(localStorageWrapper.getItem('zotero-web-library-prefs'));
+			const newPrefs = JSON.parse(getLSItem('zotero-web-library-prefs'));
 			const preferences = { ...defaultPreferences, ...newPrefs };
 
 			dispatch({

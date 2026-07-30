@@ -1,4 +1,5 @@
-import { JSONTryParse, localStorageWrapper, resizeVisibleColumns } from '../utils';
+import { JSONTryParse, resizeVisibleColumns } from '../utils';
+import { getLSItem, setLSItem } from '../common/local-storage';
 import { PREFERENCES_LOAD, PREFERENCE_CHANGE } from '../constants/actions';
 import { preferences as defaultPreferences } from '../constants/defaults';
 import { version } from '../../../data/version.json';
@@ -23,7 +24,7 @@ const getColumnsWithRecalculatedFractions = (userColumns) => {
 
 
 const preferencesLoad = () => {
-	var userPreferences = JSONTryParse(localStorageWrapper.getItem('zotero-web-library-prefs'));
+	var userPreferences = JSONTryParse(getLSItem('zotero-web-library-prefs'));
 	var preferences;
 	try {
 		if(userPreferences && userPreferences.version !== version) {
@@ -81,7 +82,7 @@ const preferenceChange = (name, value) => {
 		await (new Promise(resolve => {
 			let preferences = {
 				...defaultPreferences,
-				...JSONTryParse(localStorageWrapper.getItem('zotero-web-library-prefs')),
+				...JSONTryParse(getLSItem('zotero-web-library-prefs')),
 				version
 			};
 
@@ -92,7 +93,7 @@ const preferenceChange = (name, value) => {
 			}
 
 			setTimeout(() => {
-				localStorageWrapper.setItem('zotero-web-library-prefs', JSON.stringify(preferences));
+				setLSItem('zotero-web-library-prefs', JSON.stringify(preferences));
 				resolve();
 			}, 0)
 		}));

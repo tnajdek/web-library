@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from './utils/render';
 import { JSONtoState, getStateWithout } from './utils/state';
 import { MainZotero } from '../src/js/component/main';
+import { setLSItem } from '../src/js/common/local-storage';
 import { applyAdditionalJestTweaks, waitForPosition } from './utils/common';
 import { setupMSWLifecycle } from './utils/msw-lifecycle';
 import stateLibraryView from './fixtures/state/desktop-test-user-library-view.json';
@@ -56,7 +57,7 @@ describe('User Type', () => {
 	});
 
 	test('Ignore pointing device used if density preference is set to mouse', async () => {
-		localStorage.setItem('zotero-web-library-prefs', JSON.stringify({ version: '1.5.4', density: 'mouse' }));
+		setLSItem('zotero-web-library-prefs', JSON.stringify({ version: '1.5.4', density: 'mouse' }));
 		renderWithProviders(<MainZotero />, { preloadedState: libraryViewState });
 		const searchBoxEl = await screen.findByRole('searchbox', { name: 'Title, Creator, Year' });
 
@@ -72,7 +73,7 @@ describe('User Type', () => {
 	});
 
 	test('Ignore pointing device used if density preference is set to touch', async () => {
-		localStorage.setItem('zotero-web-library-prefs', JSON.stringify({ version: '1.5.4', density: 'touch' }));
+		setLSItem('zotero-web-library-prefs', JSON.stringify({ version: '1.5.4', density: 'touch' }));
 		renderWithProviders(<MainZotero />, { preloadedState: libraryViewState });
 		const searchBoxEl = await screen.findByRole('searchbox', { name: 'Title, Creator, Year' });
 
@@ -97,7 +98,7 @@ describe('User Type', () => {
 	});
 
 	test("Switch density after preference change to mouse", async () => {
-		localStorage.setItem('zotero-web-library-prefs', JSON.stringify({ version: '1.5.4', density: 'touch' }));
+		setLSItem('zotero-web-library-prefs', JSON.stringify({ version: '1.5.4', density: 'touch' }));
 		renderWithProviders(<MainZotero />, { preloadedState: libraryViewState });
 
 		expect(window.document.documentElement).toHaveClass('touch');

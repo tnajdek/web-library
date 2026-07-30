@@ -1,5 +1,6 @@
 
-import { get, localStorageWrapper } from '../utils';
+import { get } from '../utils';
+import { getLSItem, removeLSItem, setLSItem } from '../common/local-storage';
 import { ABORT_REQUEST, CONNECTION_ISSUES } from '../constants/actions';
 
 const requestsWaiting = {};
@@ -154,7 +155,7 @@ const CACHE_TIMES_KEY = 'zotero-web-library-api-cache-times';
 const apiCheckCache = key => {
 	var cacheTimes = {}, okToUseCache = false;
 	try {
-		cacheTimes = JSON.parse(localStorageWrapper.getItem(CACHE_TIMES_KEY)) || {};
+		cacheTimes = JSON.parse(getLSItem(CACHE_TIMES_KEY)) || {};
 	} catch {
 		// ignore
 	}
@@ -165,7 +166,7 @@ const apiCheckCache = key => {
 
 	if(!okToUseCache) {
 		cacheTimes[key] = Date.now();
-		localStorageWrapper.setItem(CACHE_TIMES_KEY, JSON.stringify(cacheTimes));
+		setLSItem(CACHE_TIMES_KEY, JSON.stringify(cacheTimes));
 	}
 
 	return okToUseCache;
@@ -174,12 +175,12 @@ const apiCheckCache = key => {
 const apiResetCache = key => {
 	var cacheTimes = {};
 	try {
-		cacheTimes = JSON.parse(localStorageWrapper.getItem(CACHE_TIMES_KEY)) || {};
+		cacheTimes = JSON.parse(getLSItem(CACHE_TIMES_KEY)) || {};
 		delete cacheTimes[key];
-		localStorageWrapper.setItem(CACHE_TIMES_KEY, JSON.stringify(cacheTimes));
+		setLSItem(CACHE_TIMES_KEY, JSON.stringify(cacheTimes));
 	} catch {
 		// reset all cache times
-		localStorageWrapper.removeIem(CACHE_TIMES_KEY);
+		removeLSItem(CACHE_TIMES_KEY);
 	}
 }
 

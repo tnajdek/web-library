@@ -477,13 +477,6 @@ const openDelayedURL = getURLPromise => {
 	getURLPromise.catch(() => windowReference.close());
 }
 
-// Avoid crashing when localStorage is missing, see #465
-const localStorageWrapper = window.localStorage ?? {
-	getItem: () => null,
-	setItem: () => undefined,
-	removeItem: () => undefined
-};
-
 const parseBase64File = encoded => {
 	const parts = encoded.split(',');
 	const mimeType = parts[0].match(/:(.*?);base64/)?.[1];
@@ -643,7 +636,6 @@ export {
 	isLikeURL,
 	isReaderCompatibleBrowser,
 	JSONTryParse,
-	localStorageWrapper,
 	makeRequestsUpTo,
 	mapItemKeysToRelations,
 	mapRelationsToItemKeys,

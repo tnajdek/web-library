@@ -1,4 +1,5 @@
-import { localStorageWrapper, JSONTryParse } from '../utils';
+import { JSONTryParse } from '../utils';
+import { getLSItem, removeLSItem, setLSItem } from './local-storage';
 
 const dbName = 'zotero-web-library';
 const storeName = 'viewState';
@@ -16,7 +17,7 @@ const createViewStateObjectStore = db => {
 }
 
 export const updateItemViewState = (itemKey, libraryKey, viewState) => {
-	localStorageWrapper.setItem(localStorageKey, JSON.stringify({ itemKey, libraryKey, viewState }));
+	setLSItem(localStorageKey, JSON.stringify({ itemKey, libraryKey, viewState }));
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open(dbName, dbVersion);
 		request.onupgradeneeded = event => {
@@ -31,11 +32,11 @@ export const updateItemViewState = (itemKey, libraryKey, viewState) => {
 			const modifyTime = Date.now();
 			const putRequest = store.put({ itemKey, libraryKey, modifyTime, viewState });
 			putRequest.onerror = () => {
-				localStorageKey.removeItem(localStorageKey);
+				removeLSItem(localStorageKey);
 				reject();
 			}
 			putRequest.onsuccess = () => {
-				localStorageWrapper.removeItem(localStorageKey);
+				removeLSItem(localStorageKey);
 				resolve();
 			};
 		}
@@ -54,10 +55,10 @@ export const getItemViewState = (itemKey, libraryKey) => {
 			const db = event.target.result;
 
 			// flush any pending view state changes to indexedDB before reading
-			const pendingViewState = JSONTryParse(localStorageWrapper.getItem(localStorageKey), null);
+			const pendingViewState = JSONTryParse(getLSItem(localStorageKey), null);
 			if (pendingViewState) {
 				await updateItemViewState(pendingViewState.itemKey, pendingViewState.libraryKey, pendingViewState.viewState);
-				localStorageWrapper.removeItem(localStorageKey);
+				removeLSItem(localStorageKey);
 			}
 
 			const transaction = db.transaction(storeName, 'readonly');
