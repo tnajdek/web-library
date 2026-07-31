@@ -30,7 +30,6 @@ const forceSourcemap = !!process.env.SOURCEMAP;
 const config = {
 	input: './src/js/main.js',
 	external: [
-		'cross-fetch/polyfill',
 		'jsdom',	// zotero-utilities/utilities.js includes jsdom which is then
 					// treeshaken because we replace Zotero.isNode to false. To avoid
 					// bogus imports/warnings it also needs to be marked as external.
