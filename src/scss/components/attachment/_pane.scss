@@ -113,21 +113,6 @@
 				}
 			}
 
-			.export-pdf {
-				min-width: 80px; // prevent button shrinking when showing spinner
-				display: flex;
-				align-items: center;
-				text-decoration: none;
-
-				@include breakpoints.touch-or-bp-down(sm) {
-					min-width: 106px; // prevent button shrinking when showing spinner
-				}
-
-				> .icon {
-					margin-left: variables.$space-xs;
-				}
-			}
-
 			.btn-icon .icon {
 				color: common.$icon-color;
 			}
@@ -138,6 +123,23 @@
 				margin-left: variables.$space-xs;
 			}
 		}
+}
+
+// Lives in a dropdown menu portalled to the document body, hence not nested
+// under .download-options
+.dropdown-item.export-pdf {
+	min-width: 80px; // prevent button shrinking when showing spinner
+	display: flex;
+	align-items: center;
+	text-decoration: none;
+
+	@include breakpoints.touch-or-bp-down(sm) {
+		min-width: 106px; // prevent button shrinking when showing spinner
+	}
+
+	> .spinner {
+		margin-left: variables.$space-xs;
+	}
 }
 
 .tab-pane.attachments .add-linked-url {

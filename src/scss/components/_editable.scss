@@ -234,7 +234,14 @@
 		}
 	}
 
+	// Match specificity of the `.input-group .spinner` rule in partials/forms,
+	// which this overrides; its offsets suit full-size form controls, whereas
+	// the pseudo-editable box is shrunk by negative margins, so the spinner
+	// must hug the corner to sit centered
 	& + .spinner {
-		right: 0;
+		@include breakpoints.mouse-and-bp-up(md) {
+			top: 0;
+			right: 0;
+		}
 	}
 }
