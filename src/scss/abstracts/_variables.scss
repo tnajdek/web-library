@@ -207,10 +207,9 @@ $creators-value-padding-right-touch: 31px;
 $note-list-padding-top: ($space-sm - 5px); // Hairline
 $note-list-padding-bottom: ($space-sm - 6px);
 
-// Icon
-$icon-spin-size-sm: $space-md;
-$icon-spin-size-md: $space-lg;
-$icon-spin-size-lg: $space-xl;
+// Spinner -- box sizes of the web-common presets (geometry lives in web-common)
+$spinner-size-sm: $space-md;
+$spinner-size-lg: $space-xl;
 
 // Buttons & forms
 $input-btn-focus-width: 2px;
@@ -230,7 +229,7 @@ $form-group-margin: $space-sm;
 $form-group-margin-touch: 20px; // todo
 $input-border-radius: $input-btn-border-radius;
 $form-grid-gutter-width: $space-xs;
-$icon-spin-spacing-lg: (math.floor($font-size-lg * $line-height-base) + 2 * $input-btn-padding-y-lg + 2 * $input-border-width - $icon-spin-size-sm) * 0.5;
+$spinner-spacing-lg: (math.floor($font-size-lg * $line-height-base) + 2 * $input-btn-padding-y-lg + 2 * $input-border-width - $spinner-size-sm) * 0.5;
 $input-transition: 0.15s ease;
 
 

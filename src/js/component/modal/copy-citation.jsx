@@ -833,7 +833,7 @@ const CopyCitationModal = () => {
 						</div>
 						<div className="copy-citation-container">
 							{state.isUpdating ? (
-								<Spinner className="large" />
+								<Spinner large />
 							) : (
 								<Fragment>
 									<h5 id="copy-citation-preview-header">

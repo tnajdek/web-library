@@ -1,4 +1,5 @@
 @use "../abstracts/variables";
+@use "../../../modules/web-common/scss/abstracts/mixins/spinner";
 
 .input-group.search {
 	.fulltext-reindexing-progress {
@@ -21,11 +22,17 @@
 			color: var(--accent-blue);
 		}
 
-		// `.icon-spin` on touch is 24px. Pin it to 16px everywhere to match the ring/tick icon.
-		.icon-spin {
-			width: variables.$space-md;
-			height: variables.$space-md;
-			color: var(--accent-blue);
+		// The spinner stands in for the ProgressRing, so it must render exactly
+		// like it: flex-centred in the trigger rather than absolutely positioned
+		// by the `.input-group` busy-spinner rule, and keeping the ring's 1x
+		// geometry (7px radius, 2px stroke) on dense screens too -- override
+		// the small preset's retina hairline variant under the same media query
+		.spinner {
+			position: static;
+
+			@media (resolution >= 2dppx) and (prefers-reduced-motion: no-preference) {
+				@include spinner.spinner-arc(7px, 2px);
+			}
 		}
 	}
 

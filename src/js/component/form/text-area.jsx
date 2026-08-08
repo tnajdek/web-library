@@ -1,6 +1,7 @@
 import cx from 'classnames';
 import PropTypes from 'prop-types';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState, } from 'react';
+import { useSelector } from 'react-redux';
 import { usePrevious } from 'web-common/hooks';
 import { noop, pick } from 'web-common/utils';
 import { Spinner } from 'web-common/components';
@@ -15,6 +16,7 @@ const TextAreaInput = memo(forwardRef((props, ref) => {
 	const { className, inputGroupClassName, isBusy, value: initialValue, isSingleLine, onBlur = noop,
 		onFocus = noop, onCancel = noop, onChange = noop, onCommit = noop, onKeyDown = noop,
 		onKeyUp = noop, selectOnFocus, resize, ...rest } = props;
+	const isTouchOrSmall = useSelector(state => state.device.isTouchOrSmall);
 	const [value, setValue] = useState(initialValue);
 	const prevInitialValue = usePrevious(initialValue);
 
@@ -117,7 +119,7 @@ const TextAreaInput = memo(forwardRef((props, ref) => {
 					{ textarea }
 				</AutoResizer>
 			) : textarea }
-			{ isBusy && <Spinner /> }
+			{ isBusy && <Spinner small={ !isTouchOrSmall } /> }
 		</div>
 	);
 }));

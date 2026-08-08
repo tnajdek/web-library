@@ -51,16 +51,10 @@ fieldset {
 	padding: 0;
 }
 
-.form-control-lg + .icon-spin {
+.form-control-lg + .spinner {
 	@include breakpoints.mouse-and-bp-up(md) {
-		top: variables.$icon-spin-spacing-lg;
-		right: variables.$icon-spin-spacing-lg;
-		width: variables.$icon-spin-size-sm;
-		height: variables.$icon-spin-size-sm;
-
-		path {
-			stroke-width: 1.2px;
-		}
+		top: variables.$spinner-spacing-lg;
+		right: variables.$spinner-spacing-lg;
 	}
 }
 
@@ -164,7 +158,7 @@ label {
 	min-width: 0;
 	position: relative;
 
-	.icon-spin {
+	.spinner {
 		position: absolute;
 
 		@include breakpoints.touch-or-bp-down(sm) {
@@ -173,14 +167,8 @@ label {
 		}
 
 		@include breakpoints.mouse-and-bp-up(md) {
-			width: variables.$icon-spin-size-sm;
-			height: variables.$icon-spin-size-sm;
 			right: variables.$space-min + variables.$input-border-width;
 			top: variables.$space-min + variables.$input-border-width;
-
-			path {
-				stroke-width: 1.2px;
-			}
 		}
 	}
 
@@ -193,7 +181,7 @@ label {
 		}
 
 		&.busy {
-			.icon-spin {
+			.spinner {
 				top: auto;
 				z-index: 2; // Over generated content 'backdrop'
 			}
@@ -201,7 +189,7 @@ label {
 			// Align backdrop and spinner with last line
 			@include breakpoints.touch-or-bp-down(sm) {
 				&::after,
-				.icon-spin {
+				.spinner {
 					right: variables.$input-btn-padding-x-touch;
 					bottom: 9px;
 				}
@@ -209,10 +197,13 @@ label {
 
 			@include breakpoints.mouse-and-bp-up(md) {
 				&::after,
-				.icon-spin {
+				.spinner {
 					bottom: 2px;
-					width: variables.$icon-spin-size-sm;
-					height: variables.$icon-spin-size-sm;
+				}
+
+				&::after {
+					width: variables.$spinner-size-sm;
+					height: variables.$spinner-size-sm;
 				}
 			}
 		}
@@ -262,7 +253,7 @@ label {
 		}
 
 		@include breakpoints.mouse-and-bp-up(md) {
-			padding-right: variables.$space-min + variables.$icon-spin-size-sm + 1px;
+			padding-right: variables.$space-min + variables.$spinner-size-sm + 1px;
 		}
 	}
 
@@ -292,7 +283,7 @@ label {
 
 	.busy:not(.textarea) & {
 		@include breakpoints.mouse-and-bp-up(md) {
-			padding-right: variables.$icon-spin-size-sm + variables.$icon-spin-spacing-lg;
+			padding-right: variables.$spinner-size-sm + variables.$spinner-spacing-lg;
 		}
 	}
 }

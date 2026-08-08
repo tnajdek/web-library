@@ -255,7 +255,7 @@ test.describe('Full-text reindexing', () => {
 		// The index finished building, but the re-run search is held: the spinner shows,
 		// the popover now reads as running the search, and the completed tick is withheld
 		// until the re-run settles.
-		await expect(page.locator('.fulltext-reindexing-progress .icon-spin')).toBeVisible({ timeout: 10000 });
+		await expect(page.locator('.fulltext-reindexing-progress .spinner')).toBeVisible({ timeout: 10000 });
 		await expect(page.getByRole('dialog', { name: 'Rebuilding full-text index' })
 			.getByText(/Running full-text search/)).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Full-text index rebuilt' })).toBeHidden();
@@ -265,7 +265,7 @@ test.describe('Full-text reindexing', () => {
 		await expect(page.getByRole('button', { name: 'Full-text index rebuilt' })).toBeVisible({ timeout: 10000 });
 		await expect(page.getByRole('dialog', { name: 'Full-text index rebuilt' })
 			.getByText('Full-text search is up to date.')).toBeVisible();
-		await expect(page.locator('.fulltext-reindexing-progress .icon-spin')).toBeHidden();
+		await expect(page.locator('.fulltext-reindexing-progress .spinner')).toBeHidden();
 	});
 
 	test('the completed indicator is removed when a new search term is entered', async ({ page, serverPort }) => {

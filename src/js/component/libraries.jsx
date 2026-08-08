@@ -140,7 +140,7 @@ const LibraryNode = props => {
 				</Fragment>
 			) }
 			<div className="truncate" id={ id.current } title={ name }>{ name }</div>
-			{ shouldShowSpinner && <Spinner className="small mouse" /> }
+			{ shouldShowSpinner && <Spinner small className="mouse" /> }
 			{
 				!shouldShowSpinner && !isReadOnly && !pickerMode && (
 					<Button

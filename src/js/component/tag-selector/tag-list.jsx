@@ -466,7 +466,7 @@ const TagList = forwardRef(({toggleTag = noop, isManager = false, ...rest}, ref)
 					)
 				}}/>
 			) : (
-				<Spinner className="large centered"/>
+				<Spinner large className="centered" />
 			)}
 		</div>
 	);

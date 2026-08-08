@@ -147,7 +147,7 @@ const ItemsList = memo(props => {
 				)
 			}
 			<>
-				{!hasChecked && (pickerMode || (!isModalOpen && !isSearchModeHack)) && <Spinner className="large" />}
+				{!hasChecked && (pickerMode || (!isModalOpen && !isSearchModeHack)) && <Spinner large />}
 				{hasChecked && totalResults === 0 && (
 					<div className="item-list-empty">
 						No items in this view

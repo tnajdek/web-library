@@ -104,7 +104,7 @@ const SelectInput = forwardRef((props, ref) => {
 					ref={ input }
 				/>
 			) }
-			{ isBusy ? <Spinner className="small" /> : null }
+			{ isBusy ? <Spinner small={ !isTouchOrSmall } /> : null }
 		</div>
 	);
 });

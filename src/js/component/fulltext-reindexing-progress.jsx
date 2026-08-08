@@ -62,7 +62,7 @@ const FulltextReindexingProgress = () => {
 	if(isComplete) {
 		progressIcon = <Icon type="16/tick" width="16" height="16" />;
 	} else if(isRefreshing) {
-		progressIcon = <Spinner />;
+		progressIcon = <Spinner small />;
 	} else {
 		progressIcon = <ProgressRing value={ indexedCount } max={ expectedCount } />;
 	}

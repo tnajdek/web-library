@@ -1,6 +1,7 @@
 import cx from 'classnames';
 import PropTypes from 'prop-types';
 import { forwardRef, memo, useCallback, useContext, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, } from 'react';
+import { useSelector } from 'react-redux';
 import { usePrevious } from 'web-common/hooks';
 import { mod, noop, omit, pick } from 'web-common/utils';
 import { Spinner } from 'web-common/components';
@@ -84,6 +85,7 @@ const Input = memo(forwardRef((props, ref) => {
 	const { className = 'form-control', inputGroupClassName, isBusy, isDisabled, isReadOnly, isRequired, onBlur = noop,
 		onCancel = noop, onCommit = noop, onChange = noop, onFocus = noop, onKeyDown = noop, selectOnFocus, suggestions,
 		validationError, value: initialValue, resize, ...rest } = props;
+	const isTouchOrSmall = useSelector(state => state.device.isTouchOrSmall);
 	const [hasCancelledSuggestions, setHasCancelledSuggestions] = useState(false);
 	const [value, setValue] = useState(initialValue);
 	const [highlighted, setHighlighted] = useState(0);
@@ -254,7 +256,7 @@ const Input = memo(forwardRef((props, ref) => {
 				aria-controls={ suggestions ? `${id}-suggestions}` : null }
 			/>
 			{suggestions && (portalRef?.current ? createPortal(suggestionsEl, portalRef.current) : suggestionsEl) }
-			{ isBusy ? <Spinner /> : null }
+			{ isBusy ? <Spinner small={ !isTouchOrSmall } /> : null }
 		</div>
 	);
 }));

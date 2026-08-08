@@ -66,7 +66,7 @@ const Modal = forwardRef((props, ref) => {
 	return isBusy ? createPortal(
 		<div className="ReactModalPortal">
 			<div className={cx('ReactModal__Overlay modal-backdrop loading') }>
-				<Spinner className="large" />
+				<Spinner large />
 			</div>
 		</div>, document.body
 	) : (

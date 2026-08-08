@@ -257,7 +257,7 @@ const ItemDetailsTabs = () => {
 			</header>
 			{
 				// on small devices, where tabs are not used, we display single spinner
-				!isReady ? <Spinner className="large" /> : (
+				!isReady ? <Spinner large /> : (
 					<Fragment>
 						{
 							!['attachment', 'note'].includes(item.itemType) && (

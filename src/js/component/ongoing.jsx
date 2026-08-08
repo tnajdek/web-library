@@ -79,7 +79,7 @@ const OngoingProcessDescription = ({ process }) => {
 						{PROCESSES[process.kind]?.getActionLabel?.(process) ?? 'Dismiss'}
 					</Button>
 				) :
-					<Spinner className="small" />}
+					<Spinner small />}
 			</span>
 		</li>
 	);

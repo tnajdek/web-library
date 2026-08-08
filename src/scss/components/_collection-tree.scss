@@ -215,18 +215,16 @@
 			}
 
 			@include breakpoints.mouse-and-bp-up(md) {
-				&:not(.icon-spin) {
-					@include selectors.state(".collection-tree:focus-within li.selected > .item-container") {
-						color: var(--primary-on-accent);
-					}
+				@include selectors.state(".collection-tree:focus-within li.selected > .item-container") {
+					color: var(--primary-on-accent);
+				}
 
-					@include selectors.state("li.picked > .item-container") {
-						color: var(--primary-on-accent);
-					}
+				@include selectors.state("li.picked > .item-container") {
+					color: var(--primary-on-accent);
+				}
 
-					@include selectors.state(".item-container.dnd-target", "li.selected > .item-container.dnd-target") {
-						color: var(--material-background);
-					}
+				@include selectors.state(".item-container.dnd-target", "li.selected > .item-container.dnd-target") {
+					color: var(--material-background);
 				}
 			}
 		}
@@ -294,7 +292,7 @@
 			}
 		}
 
-		.icon-spin {
+		.spinner {
 			margin-right: 0;
 			margin-left: variables.$space-xs;
 
@@ -396,7 +394,7 @@
 				color: var(--color-primary);
 			}
 
-			> .icon:not(.icon-spin) {
+			> .icon {
 				color: var(--accent-blue);
 			}
 

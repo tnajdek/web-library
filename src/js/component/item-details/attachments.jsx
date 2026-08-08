@@ -166,7 +166,7 @@ const AttachmentActions = memo(props => {
 						</a>
 					)}
 					{isReaderCompatibleBrowser() && isPDF ? (
-						isPreppingPDF ? <Spinner className="small" /> :
+						isPreppingPDF ? <Spinner small /> :
 							preppedPDFURL ? (
 								<a
 									className="btn btn-icon"
@@ -379,7 +379,7 @@ const Attachment = memo(props => {
 					(attachment.linkMode === 'linked_url' ? attachment.url : attachment.filename)
 				}
 			</div>
-			{isUploading && <Spinner className="small" />}
+			{isUploading && <Spinner small />}
 			<AttachmentActions
 				isReadOnly={isReadOnly}
 				focusBySelector={focusBySelector}

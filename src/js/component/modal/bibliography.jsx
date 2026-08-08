@@ -280,7 +280,7 @@ const BibliographyModal = () => {
 				{!isTouchOrSmall && (
 					<div className="bibliography-container">
 						{isUpdating ? (
-							<Spinner className="large" />
+							<Spinner large />
 						) : (
 							<div className="bibliography read-only"
 								dangerouslySetInnerHTML={{ __html: output }}

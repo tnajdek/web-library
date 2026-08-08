@@ -17,10 +17,10 @@
 		cursor: ew-resize; // Needed when resizing is laggy
 	}
 
-	.icon-spin {
+	.spinner {
 		position: absolute;
-		left: calc(50% - #{variables.$icon-spin-size-lg * 0.5});
-		top: calc(50% - #{variables.$icon-spin-size-lg * 0.5} + #{variables.$line-height-large * 0.5});
+		left: calc(50% - #{variables.$spinner-size-lg * 0.5});
+		top: calc(50% - #{variables.$spinner-size-lg * 0.5} + #{variables.$line-height-large * 0.5});
 	}
 
 	&.dnd-target {

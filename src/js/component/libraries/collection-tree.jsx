@@ -1100,7 +1100,7 @@ const CollectionTree = props => {
 		if(isTouchOrSmall) {
 			return (
 				<div role="presentation" className="level level-1 level-last loading">
-					<Spinner className="large" />
+					<Spinner large />
 				</div>
 			);
 		}
