@@ -62,4 +62,16 @@ test.describe('Mobile Interaction', () => {
 
 		await expect(menuItem).not.toBeVisible();
 	});
+
+	test('Item details renders as sections without tab semantics', async ({ page, serverPort }) => {
+		server = await loadFixtureState('mobile-test-user-item-details-view', serverPort, page);
+		await expect(page.getByRole('heading', { name: 'Cooperative pathfinding' })).toBeVisible();
+
+		// The header is hidden in sections mode, so hidden elements must be included for these queries to be meaningful
+		const itemDetails = page.locator('.item-details');
+		await expect(itemDetails.locator('.tabs .tab').first()).toBeAttached();
+		await expect(itemDetails.getByRole('tablist', { includeHidden: true })).toHaveCount(0);
+		await expect(itemDetails.getByRole('tab', { includeHidden: true })).toHaveCount(0);
+		await expect(itemDetails.locator('.tabs .tab[aria-controls]')).toHaveCount(0);
+	});
 });

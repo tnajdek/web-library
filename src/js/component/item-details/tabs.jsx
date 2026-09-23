@@ -153,7 +153,7 @@ const ItemDetailsTabs = () => {
 				<Tabs
 					compact
 					activateOnFocus
-					as-sections={ !shouldUseTabs }
+					asSections={ !shouldUseTabs }
 					aria-label={ shouldUseTabs ? 'Item Details' : null }
 				>
 					{

@@ -133,6 +133,19 @@ test.describe('Desktop Layout', () => {
 		expect(iconInTitle).toBe(false);
 	});
 
+	test('Item details tablist spans the full width of the panel header', async ({ page, serverPort }) => {
+		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
+
+		const header = page.locator('.item-details .panel-header');
+		const tablist = header.getByRole('tablist', { name: 'Item Details' });
+		await expect(tablist).toBeVisible();
+
+		// The tablist's bottom border is the header's divider, so it must not shrink to fit its tabs
+		const headerWidth = await header.evaluate(el => el.getBoundingClientRect().width);
+		const tablistWidth = await tablist.evaluate(el => el.getBoundingClientRect().width);
+		expect(Math.abs(tablistWidth - headerWidth)).toBeLessThanOrEqual(1);
+	});
+
 	test('Layout switches from 3-column to 2-column when crossing lg/md breakpoint', async ({ page, serverPort }) => {
 		await page.setViewportSize({ width: 1300, height: 800 });
 		server = await loadFixtureState('desktop-test-user-item-view', serverPort, page);
